@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.spyproject/
+
+# Resultados generados (se regeneran corriendo main.py / grafico_lindo.py)
+*.npz
+*.png
+*.svg
+*.pdf
