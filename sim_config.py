@@ -36,10 +36,10 @@ eps_m = n_g ** 2  # permitividad del agua -- misma particula, mismo medio, para 
 # (compartidos por gauss.py y dona.py; los parametros propios de cada
 # haz -- NA, h, w0, wavelength, polarizacion, I0 -- se quedan en cada
 # archivo de haz porque son distintos entre si)
-x_steps = 3      # resolucion en x (nm)
-z_steps = 3      # resolucion en z (nm)
-x_range = 600    # rango en XY (nm)
-z_range = 1200   # rango en Z (nm)
+x_steps = 5      # resolucion en x (nm)
+z_steps = 5      # resolucion en z (nm)
+x_range = 1200      # rango en XY (nm)
+z_range = 1200     # rango en Z (nm)
 
 # --- Paso espacial para las derivadas/gradientes en fuerzas.py ---
 paso_espacial_nm = 9

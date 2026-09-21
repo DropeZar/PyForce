@@ -12,9 +12,9 @@ from PyFocus import sim
 from sim_config import x_steps, z_steps, x_range, z_range
 
 # --- Parametros propios de este haz ---
-NA = 1.3             # apertura numerica
-n = 1.52              # indice de refraccion del medio
-h = 3.2               # radio de apertura del objetivo (mm)
+NA = 1.3              # apertura numerica
+n = 1.51822           # indice de refraccion del medio: agua= 1.33 , aire= 1.00, aceite=1.53
+h = 2.6               # radio de apertura del objetivo (mm)
 w0 = 5                # radio del haz gaussiano de entrada (mm)
 wavelength = 532      # longitud de onda (nm)
 gamma = 45            # polarizacion: 45 + beta=90 = circular derecha

@@ -2,18 +2,23 @@
 """
 particula.py
 
-Polarizabilidad de Kuwata para una nanoesfera metalica, con la
-permitividad del oro interpolada de la tabla completa de
-Johnson & Christy (1972).
+Polarizabilidad de una nanoesfera metalica, con la permitividad del oro
+interpolada de la tabla completa de Johnson & Christy (1972).
 
-Esta es la version validada del calculo (antes vivia en
-polarizabilidad_Kuwata.py) -- reemplaza al calc_alpha/epsilon_gold
-que estaba duplicado y desactualizado dentro de main_fuerza.py.
+calc_alpha es ahora la polarizabilidad dipolar EXACTA (teoria de Mie
+completa), extraida del coeficiente a1 (formulas de Bohren & Huffman,
+recurrencia descendente de la derivada logaritmica D_n(mx) para soportar
+indice complejo del oro). Es un reemplazo directo (misma firma, mismas
+unidades m^3) de la version anterior basada en Kuwata: el resto del
+codigo (main_fuerza.py, fuerzas.py, etc.) que hace
+`from particula import calc_alpha` no necesita cambios.
+
+La aproximacion de Kuwata se mantiene como calc_alpha_kuwata, solo para
+referencia/comparacion (graficar_comparacion, comparar_radios).
 
 Uso tipico:
     from particula import calc_alpha
-    alpha_p, alpha_pp = calc_alpha(592)          # usa radio y medio de config.py
-    alpha_p, alpha_pp = calc_alpha(532, a=50e-9) # radio distinto puntual
+    alpha_p, alpha_pp = calc_alpha(592)
 """
 import numpy as np
 
@@ -87,9 +92,79 @@ def calc_alpha(wavelength_nm, a=radio_particula, eps_m_local=eps_m):
     return np.real(alpha_K), np.imag(alpha_K)
 
 
+# ─── Polarizabilidad exacta (teoria de Mie completa) ─────────────────────────
+
+def _mie_a1(m, x):
+    """
+    Coeficiente de Mie a1 (dipolo electrico), convencion de Bohren & Huffman.
+
+    m : indice de refraccion relativo (n_particula / n_medio), complejo.
+    x : parametro de tamano k*a (k = 2*pi*n_medio/lambda), real.
+
+    Usa recurrencia DESCENDENTE para la derivada logaritmica D_n(mx), que es
+    la forma numericamente estable para indices complejos (metal absorbente).
+    """
+    if x < 1e-8:
+        return 0.0 + 0.0j
+
+    # margen de terminos suficiente para convergencia (criterio de Wiscombe)
+    nmax = max(15, int(np.ceil(x + 4 * x ** (1 / 3) + 2)) + 10)
+    mx = m * x
+
+    D = np.zeros(nmax + 1, dtype=complex)  # D[n] = D_n(mx)
+    for n in range(nmax, 0, -1):
+        D[n - 1] = n / mx - 1.0 / (D[n] + n / mx)
+
+    # funciones de Riccati-Bessel psi_n, chi_n, xi_n = psi_n - i*chi_n
+    psi0, chi0 = np.sin(x), np.cos(x)
+    psi1 = psi0 / x - chi0
+    chi1 = chi0 / x + psi0
+    xi0 = psi0 - 1j * chi0
+    xi1 = psi1 - 1j * chi1
+
+    D1 = D[1]
+    a1 = ((D1 / m + 1 / x) * psi1 - psi0) / ((D1 / m + 1 / x) * xi1 - xi0)
+    return a1
+
+
+def calc_alpha_mie(wavelength_nm, a=radio_particula, eps_m_local=eps_m):
+    """
+    Polarizabilidad dipolar EXACTA (teoria de Mie completa), extraida del
+    coeficiente a1. Misma normalizacion/unidades (m^3) que calc_alpha, para
+    poder compararlas directamente.
+
+    alpha = i * (6*pi / k^3) * a1   con k = 2*pi*n_medio/lambda
+
+    (la constante 6*pi, en vez de la 3/2 "de libro", es la que hace que el
+    limite a->0 coincida exactamente con el termino cuasiestatico de Kuwata,
+    que ya trae el V=(4/3)*pi*a^3 explicito; se valido numericamente).
+
+    Retorna (Re(alpha), Im(alpha)) en m^3.
+    """
+    wl = np.atleast_1d(np.asarray(wavelength_nm, dtype=float))
+    lam = wl * 1e-9
+    eps_p = epsilon_gold(wl)
+    n_p = np.sqrt(eps_p)
+    n_m = np.sqrt(eps_m_local)
+    k = 2 * np.pi * n_m / lam
+    x = k * a
+    m_rel = n_p / n_m
+
+    alpha = np.empty(wl.shape, dtype=complex)
+    for i in range(wl.size):
+        a1 = _mie_a1(m_rel[i], x[i])
+        alpha[i] = 1j * (6 * np.pi / k[i] ** 3) * a1
+
+    if alpha.size == 1:
+        return np.real(alpha[0]), np.imag(alpha[0])
+    return np.real(alpha), np.imag(alpha)
+
+
+# ─── Graficos ─────────────────────────────────────────────────────────────
+
 def graficar_alpha(lam_min=400, lam_max=900, n_puntos=700, a=radio_particula,
                     eps_m_local=eps_m, longitudes_marcadas=(592, 1064)):
-    """Grafico de diagnostico de Re/Im/|alpha| en funcion de la longitud de onda."""
+    """Grafico de diagnostico de Re/Im/|alpha| en funcion de la longitud de onda (Kuwata)."""
     import matplotlib.pyplot as plt
 
     lam_nm = np.linspace(lam_min, lam_max, n_puntos)
@@ -116,10 +191,85 @@ def graficar_alpha(lam_min=400, lam_max=900, n_puntos=700, a=radio_particula,
     return fig, ax
 
 
+def graficar_comparacion(lam_min=400, lam_max=900, n_puntos=400, a=radio_particula,
+                          eps_m_local=eps_m, longitudes_marcadas=(592, 1064)):
+    """
+    Compara Kuwata vs Mie exacto: Re(alpha), Im(alpha) y |alpha| superpuestos,
+    dos radios distintos opcionalmente, en el mismo grafico.
+    """
+    import matplotlib.pyplot as plt
+
+    lam_nm = np.linspace(lam_min, lam_max, n_puntos)
+    apK, appK = calc_alpha(lam_nm, a=a, eps_m_local=eps_m_local)
+    apM, appM = calc_alpha_mie(lam_nm, a=a, eps_m_local=eps_m_local)
+    aK, aM = apK + 1j * appK, apM + 1j * appM
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), sharex=True)
+    titulos = [r"Re($\alpha$)", r"Im($\alpha$)", r"$|\alpha|$"]
+    datosK = [aK.real, aK.imag, np.abs(aK)]
+    datosM = [aM.real, aM.imag, np.abs(aM)]
+
+    for ax, tit, dK, dM in zip(axes, titulos, datosK, datosM):
+        ax.plot(lam_nm, dK, label="Kuwata", color="tab:blue")
+        ax.plot(lam_nm, dM, label="Mie (exacto)", color="tab:orange", ls="--")
+        for lam0 in longitudes_marcadas:
+            if lam_min <= lam0 <= lam_max:
+                ax.axvline(lam0, color="gray", lw=0.6, ls=":")
+        ax.axhline(0, color="gray", lw=0.4)
+        ax.set_title(tit)
+        ax.set_xlabel("Longitud de onda [nm]")
+        ax.grid(alpha=0.3)
+        ax.legend(fontsize=9)
+
+    lam_res_K = lam_nm[np.argmax(np.abs(aK))]
+    lam_res_M = lam_nm[np.argmax(np.abs(aM))]
+    fig.suptitle(
+        f"Kuwata vs Mie exacto — nanoesfera Au, a={a*1e9:.0f} nm   "
+        f"(máx |α|: Kuwata {lam_res_K:.0f} nm, Mie {lam_res_M:.0f} nm)"
+    )
+    fig.tight_layout()
+    plt.show()
+    return fig, axes
+
+
+def comparar_radios(radios_nm=(20, 40, 60, 80), lam_min=450, lam_max=750,
+                     n_puntos=400, eps_m_local=eps_m):
+    """
+    |alpha(lambda)| para varios radios, Kuwata vs Mie, para ver de un vistazo
+    cuanto (no) se corre el maximo con Kuwata comparado con Mie.
+    """
+    import matplotlib.pyplot as plt
+
+    lam_nm = np.linspace(lam_min, lam_max, n_puntos)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5), sharex=True, sharey=True)
+
+    cmap = plt.cm.viridis(np.linspace(0, 1, len(radios_nm)))
+    for a_nm, color in zip(radios_nm, cmap):
+        a = a_nm * 1e-9
+        apK, appK = calc_alpha(lam_nm, a=a, eps_m_local=eps_m_local)
+        apM, appM = calc_alpha_mie(lam_nm, a=a, eps_m_local=eps_m_local)
+        aK = np.abs(apK + 1j * appK)
+        aM = np.abs(apM + 1j * appM)
+        ax1.plot(lam_nm, aK, color=color, label=f"a={a_nm} nm")
+        ax2.plot(lam_nm, aM, color=color, label=f"a={a_nm} nm")
+
+    ax1.set_title("Kuwata")
+    ax2.set_title("Mie (exacto)")
+    for ax in (ax1, ax2):
+        ax.set_xlabel("Longitud de onda [nm]")
+        ax.grid(alpha=0.3)
+        ax.legend(fontsize=8)
+    ax1.set_ylabel(r"$|\alpha|$  [m$^3$]")
+    fig.suptitle("Corrimiento del máximo de |α| con el radio")
+    fig.tight_layout()
+    plt.show()
+    return fig, (ax1, ax2)
+
+
 if __name__ == '__main__':
     for lam in (592, 1064):
-        ap, app = calc_alpha(lam)
-        print(f"λ = {lam} nm →  α' = {ap:.3e} m³   α'' = {app:.3e} m³")
-        print(f"             ratio α''/α' = {app/ap:.3f}  "
-              f"({'absorbente' if app/ap > 0 else 'dieléctrica'})")
-    graficar_alpha()
+        for nombre, fn in (("Kuwata", calc_alpha), ("Mie", calc_alpha_mie)):
+            ap, app = fn(lam)
+            print(f"[{nombre:6s}] λ = {lam} nm →  α' = {ap:.3e} m³   α'' = {app:.3e} m³")
+    graficar_comparacion()
+    comparar_radios()

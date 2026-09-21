@@ -15,13 +15,13 @@ from sim_config import x_steps, z_steps, x_range, z_range
 # --- Parametros propios de este haz ---
 NA = 1              # apertura numerica
 n = 1.35             # indice de refraccion del medio
-h = 2.2              # radio de apertura del objetivo (mm)
-w0 = 3.7311          # radio del haz gaussiano (mm)
+h = 3             # radio de apertura del objetivo (mm)
+w0 = 4          # radio del haz gaussiano (mm)
 wavelength = 592     # longitud de onda (nm)
 gamma = 0            # polarizacion: 45 + beta=90 = circular derecha
 beta = 0
 z = 0                # plano focal (z=0)
-I0 = 10              # intensidad inicial de este haz (mW/cm^2)
+I0 = 20              # intensidad inicial de este haz (mW/cm^2)
 L = ''               # distancia de propagacion del haz antes del objetivo (m)
 R = ''               # radio de la mascara de fase (mm)
 ds = ''              # desplazamiento off-axis del haz (mm)

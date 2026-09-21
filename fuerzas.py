@@ -105,17 +105,7 @@ def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m):
 
 
 def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m):
-    """
-    Fuerza optica (gradiente + scattering + spin-curl) en el plano XZ.
-
-    NOTA: igual que en el main original, el retorno total (Fx, Fz)
-    de esta funcion NO incluye el termino de spin-curl (Fsc) --
-    fue excluido a proposito en algun momento y quedo asi. Los
-    componentes Fsc_x/Fsc_z se siguen devolviendo por separado para
-    poder graficarlos o sumarlos manualmente si hace falta.
-    Ver tambien el issue abierto en la memoria del proyecto sobre la
-    asimetria entre fuerzas_xy (que si incluye Fsc) y fuerzas_xz (que no).
-    """
+    
     I = np.abs(ex) ** 2 + np.abs(ey) ** 2 + np.abs(ez) ** 2
 
     # ---- GRADIENTE ----

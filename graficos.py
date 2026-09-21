@@ -90,3 +90,45 @@ def graficar_componentes(componentes, rango, titulo_general='',
         fig.suptitle(titulo_general, fontsize=14)
     plt.tight_layout()
     plt.show()
+
+from scipy.constants import epsilon_0 as eps0, c as c_luz
+
+def graficar_intensidad(Ex, Ey, Ez, rango, n_medio, titulo,
+                         eje_x='x (nm)', eje_y='y (nm)', corte='x'):
+    """
+    Mapa de intensidad (kW/cm^2) + perfil 1D a lo largo de un eje.
+    Ex, Ey, Ez: campos en SI (ya multiplicados por factor_E).
+    corte: 'x' o 'y', eje a lo largo del cual se toma el perfil (fila/columna central).
+    """
+    x, y, extent = _extent(Ex.shape, rango)
+
+    # I = (1/2) n eps0 c |E|^2  [W/m^2] -> kW/cm^2 = *1e-7
+    I = 0.5 * n_medio * eps0 * c_luz * (np.abs(Ex)**2 + np.abs(Ey)**2 + np.abs(Ez)**2)
+    I *= 1e-7
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.5))
+
+    im = ax1.imshow(I, extent=extent, origin='lower', cmap='viridis')
+    ax1.set_title(f'Intensity on the {eje_x[0]}{eje_y[0]} plane')
+    ax1.set_xlabel(eje_x)
+    ax1.set_ylabel(eje_y)
+    plt.colorbar(im, ax=ax1, label='Intensity (kW/cm²)')
+
+    if corte == 'x':
+        fila = I.shape[0] // 2
+        perfil, eje = I[fila, :], x
+        ax2.set_xlabel(eje_x)
+    else:
+        col = I.shape[1] // 2
+        perfil, eje = I[:, col], y
+        ax2.set_xlabel(eje_y)
+
+    ax2.plot(eje, perfil)
+    ax2.set_title(f'Intensity along {corte}')
+    ax2.set_ylabel('Intensity (kW/cm²)')
+    ax2.grid(True)
+
+    if titulo:
+        fig.suptitle(titulo, fontsize=13)
+    plt.tight_layout()
+    plt.show()

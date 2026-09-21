@@ -1,0 +1,170 @@
+OBJETIVOS OLYMPUS — PARÁMETROS PARA PYFOCUS
+============================================
+
+
+1) OLYMPUS LUMPlanFLN 60X/1W
+----------------------------
+
+Modelo: LUMPLFLN 60XW
+Aumento: 60x
+NA: 1.00
+Medio de inmersión: Agua
+Índice de refracción del medio: n = 1.33
+
+Distancia focal efectiva:
+f = 3.00 mm
+
+Distancia de trabajo:
+WD = 2.00 mm
+
+Field Number:
+FN = 26.5 mm
+
+Diámetro de pupila de entrada:
+D_pupil = 6.00 mm
+
+Radio de apertura:
+h = D_pupil / 2
+h = 3.00 mm
+
+
+PARÁMETROS PARA PYFOCUS:
+NA = 1.00
+n = 1.33
+h = 3.00 mm
+
+
+------------------------------------------------------------
+
+
+2) OLYMPUS UPlanFLN 20X/0.50
+----------------------------
+
+Modelo: UPLFLN 20X
+Aumento: 20x
+NA: 0.50
+Medio de inmersión: Aire
+Índice de refracción del medio: n = 1.00
+
+Distancia focal efectiva:
+f = 9.00 mm
+
+Distancia de trabajo:
+WD = 2.10 mm
+
+Field Number:
+FN = 26.5 mm
+
+Espesor de cubreobjetos compatible:
+0.17 mm
+
+Diámetro de pupila de entrada:
+D_pupil = 9.00 mm
+
+Radio de apertura:
+h = D_pupil / 2
+h = 4.50 mm
+
+
+PARÁMETROS PARA PYFOCUS:
+NA = 0.50
+n = 1.00
+h = 4.50 mm
+
+
+------------------------------------------------------------
+
+
+3) OLYMPUS PLN 10X/0.25
+-----------------------
+
+Modelo: PLN 10X
+Tipo: Plan Achromat
+Aumento: 10x
+NA: 0.25
+Medio de inmersión: Aire
+Índice de refracción del medio: n = 1.00
+
+Distancia focal efectiva:
+f = 18.00 mm
+
+Distancia de trabajo:
+WD = 10.6 mm
+
+Field Number:
+FN = 22 mm
+
+Diámetro de pupila de entrada:
+D_pupil = 9.00 mm
+
+Radio de apertura:
+h = D_pupil / 2
+h = 4.50 mm
+
+
+PARÁMETROS PARA PYFOCUS:
+NA = 0.25
+n = 1.00
+h = 4.50 mm
+
+
+============================================================
+RESUMEN
+============================================================
+
+Objetivo                  NA       n       h [mm]     f [mm]
+------------------------------------------------------------
+LUMPlanFLN 60X/1W         1.00    1.33      3.00       3.00
+UPlanFLN 20X/0.50         0.50    1.00      4.50       9.00
+PLN 10X/0.25              0.25    1.00      4.50      18.00
+------------------------------------------------------------
+Objetiivo Fer:
+4) NIKON CFI Plan Fluor 100XS Oil
+---------------------------------
+
+Modelo: CFI Plan Fluor 100XS Oil
+Código Nikon: MRH02902
+
+Aumento: 100x
+
+NA:
+NA_min = 0.50
+NA_max = 1.30
+
+Medio de inmersión: Aceite
+Índice de refracción del medio: n ≈ 1.515
+(usar el índice del aceite de inmersión utilizado)
+
+Distancia de trabajo:
+WD = 0.16 mm
+
+Cubreobjetos:
+0.17 mm
+
+Corrección:
+Infinito (∞)
+
+Iris:
+Sí
+NA ajustable: 0.50 – 1.30
+
+Field Number:
+OFN = 25 mm
+
+Diámetro de pupila de entrada:
+D_pupil ≈ 5.2 mm
+
+Radio de apertura máximo:
+h_max ≈ 2.60 mm
+
+
+PARÁMETROS PARA PYFOCUS:
+
+Para iris completamente abierto:
+NA = 1.30
+h ≈ 2.60 mm
+n = índice del aceite de inmersión utilizado
+
+Para iris parcialmente cerrado:
+NA < 1.30
+h < 2.60 mm

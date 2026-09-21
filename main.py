@@ -2,7 +2,7 @@
 """
 main.py
 
-Orquesta la simulacion completa:
+La simulacion completa:
   1. Calcula los campos de cada haz (gauss.py, dona.py)
   2. Calcula la polarizabilidad de Kuwata para cada longitud de onda (particula.py)
   3. Convierte los campos simulados a unidades SI (fuerzas.calcular_factor_E)
@@ -36,6 +36,8 @@ Ex_d_xz, Ey_d_xz, Ez_d_xz = fields_d["XZ"]
 # ============================================================
 alpha_p_g, alpha_pp_g = calc_alpha(gauss.wavelength)
 alpha_p_d, alpha_pp_d = calc_alpha(dona.wavelength)
+
+
 
 # ============================================================
 # 3) Conversion de campos a unidades SI
@@ -75,14 +77,12 @@ Fx_d_xz, Fz_d_xz, Fg_x_d_xz, Fg_z_d_xz, Fs_x_d_xz, Fs_z_d_xz, Fsc_x_d_xz, Fsc_z_
 a = 1  # peso relativo del haz dona al contrapropagar
 Fx_tot_xz = Fx_g_xz + a * Fx_d_xz
 Fz_tot_xz = Fz_g_xz - a * Fz_d_xz
-
+#%%
 # ============================================================
 # 5) Graficos esenciales
 # ============================================================
-# Nota: el rango de 1000 nm para los graficos es el que usaba el main
-# original (distinto del x_range=600 de config.py, que es el rango de
-# simulacion de PyFocus) -- se mantiene igual aca.
-rango_grafico = 1000
+# Nota:mismo rango que en sim_config!.
+rango_grafico = 1200
 
 graficar_fuerza_total(Fx_tot, Fy_tot, rango_grafico, 'Fuerza total (XY)')
 
@@ -109,3 +109,44 @@ graficar_componentes(
     rango=rango_grafico,
     titulo_general='Componentes de fuerza - haz Dona (XZ)',
 )
+#%%
+from graficos import graficar_intensidad, graficar_fuerza_total, graficar_comparacion, graficar_componentes
+n_g = 1.33 
+graficar_intensidad(Ex_g_xy, Ey_g_xy, Ez_g_xy, rango_grafico, n_g, 'Gaussiano (XY)')
+graficar_intensidad(Ex_d_xy, Ey_d_xy, Ez_d_xy, rango_grafico, n_g, 'Dona (XY)')
+#%%
+graficar_intensidad(Ex_g_xz, Ey_g_xz, Ez_g_xz, rango_grafico, n_g, 'Gaussiano (XY)')
+graficar_intensidad(Ex_d_xz, Ey_d_xz, Ez_d_xz, rango_grafico, n_g, 'Dona (XY)')
+#%%
+# Guardado de campos de la dona (SI, post factor_E) para reusar en otros scripts
+np.savez('campos_dona_aceite.npz',
+         Ex_xy=Ex_d_xy, Ey_xy=Ey_d_xy, Ez_xy=Ez_d_xy,
+         Ex_xz=Ex_d_xz, Ey_xz=Ey_d_xz, Ez_xz=Ez_d_xz,
+         rango=rango_grafico, wavelength=dona.wavelength, n_medio=n_g)
+
+np.savez('campos_gauss_agua.npz',
+         Ex_xy=Ex_g_xy, Ey_xy=Ey_g_xy, Ez_xy=Ez_g_xy,
+         Ex_xz=Ex_g_xz, Ey_xz=Ey_g_xz, Ez_xz=Ez_g_xz,
+         rango=rango_grafico, wavelength=gauss.wavelength, n_medio=n_g)
+
+#%%
+"para invovar en otro lado"
+import numpy as np
+data = np.load('campos_dona.npz')
+Ex_d_xy, Ey_d_xy, Ez_d_xy = data['Ex_xy'], data['Ey_xy'], data['Ez_xy']
+Ex_d_xz, Ey_d_xz, Ez_d_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
+rango_grafico = data['rango']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
