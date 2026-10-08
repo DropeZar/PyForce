@@ -21,7 +21,7 @@ from matplotlib.gridspec import GridSpec
 
 from sim_config import eps_m, dx_fuerzas, dy_fuerzas, dz_fuerzas
 from particula import calc_alpha
-from fuerzas import fuerzas_xy, fuerzas_xz
+from fuerzas import fuerzas_xy, fuerzas_xz, espejar_haz_contrapropagante
 
 
 def _cargar_haz(npz_path):
@@ -111,11 +111,14 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
     # ---- XZ ----
     Fx_g_xz, Fz_g_xz = _fuerza_xz_pN(data_g, ap_g, app_g)
     Fx_d_xz, Fz_d_xz = _fuerza_xz_pN(data_d, ap_d, app_d)
-    Fz_tot_xz = Fz_g_xz - Fz_d_xz  # combinacion fisica (definicion unica, sin signo de display)
+    # CORREGIDO: la dona viaja hacia -z -> imagen especular z -> -z de lo simulado
+    # (antes Fz_g - Fz_d restaba tambien la fuerza de gradiente). Ver fuerzas.espejar_haz_contrapropagante.
+    Fx_d_xz, Fz_d_xz = espejar_haz_contrapropagante(Fx_d_xz, Fz_d_xz)
+    Fz_tot_xz = Fz_g_xz + Fz_d_xz  # combinacion fisica (definicion unica, sin signo de display)
 
     # convencion de signo SOLO para mostrar (streamplot fila 2 y cortes fila 3)
     disp_Fz_g = -Fz_g_xz
-    disp_Fz_d = Fz_d_xz
+    disp_Fz_d = -Fz_d_xz
     disp_Fz_tot = -Fz_tot_xz
 
     # magnitudes para colormap (no dependen del signo de display)
@@ -148,7 +151,7 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
         ax.set_ylabel('y (nm)' if i == 0 else '')
 
     # --- fila 2: XZ (usa Fz SIN negar -- el invert_yaxis ya resuelve el sentido visual) ---
-    campos_xz_plot = [(Fx_g_xz, Fz_g_xz), (Fx_d_xz, -Fz_d_xz), (Fx_tot_xz, Fz_tot_xz)]
+    campos_xz_plot = [(Fx_g_xz, Fz_g_xz), (Fx_d_xz, Fz_d_xz), (Fx_tot_xz, Fz_tot_xz)]
 
     for i, ((Fx, Fz), tit) in enumerate(zip(campos_xz_plot, titulos)):
         ax = fig.add_subplot(gs[1, i])

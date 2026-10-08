@@ -17,7 +17,7 @@ import numpy as np
 from sim_config import eps_m, dx_fuerzas, dy_fuerzas, dz_fuerzas
 from beams import gauss, dona
 from particula import calc_alpha
-from fuerzas import calcular_factor_E, fuerzas_xy, fuerzas_xz
+from fuerzas import calcular_factor_E_foco, espejar_haz_contrapropagante, fuerzas_xy, fuerzas_xz
 from graficos import graficar_fuerza_total, graficar_comparacion, graficar_componentes
 
 # ============================================================
@@ -42,15 +42,16 @@ alpha_p_d, alpha_pp_d = calc_alpha(dona.wavelength)
 # ============================================================
 # 3) Conversion de campos a unidades SI
 # ============================================================
-# Factor unico: I0 se define en aire (n=1), antes del objetivo, para
-# los dos haces -- ver el docstring de calcular_factor_E en fuerzas.py.
-# No depende del haz ni del plano (XY/XZ), asi que se calcula una sola vez.
-factor_E = calcular_factor_E(n_entrada=1.0)
+# CORREGIDO: el factor depende del indice del medio del FOCO de cada haz
+# (PyFocus no incluye el sqrt(n1/n2) de Richards-Wolf; con n_entrada=1 la
+# potencia en el foco salia n veces la real). Ver pyfocus_wrapper.factor_E_foco.
+factor_E_g = calcular_factor_E_foco(gauss.n)
+factor_E_d = calcular_factor_E_foco(dona.n)
 
-Ex_g_xy, Ey_g_xy, Ez_g_xy = Ex_g_xy * factor_E, Ey_g_xy * factor_E, Ez_g_xy * factor_E
-Ex_g_xz, Ey_g_xz, Ez_g_xz = Ex_g_xz * factor_E, Ey_g_xz * factor_E, Ez_g_xz * factor_E
-Ex_d_xy, Ey_d_xy, Ez_d_xy = Ex_d_xy * factor_E, Ey_d_xy * factor_E, Ez_d_xy * factor_E
-Ex_d_xz, Ey_d_xz, Ez_d_xz = Ex_d_xz * factor_E, Ey_d_xz * factor_E, Ez_d_xz * factor_E
+Ex_g_xy, Ey_g_xy, Ez_g_xy = Ex_g_xy * factor_E_g, Ey_g_xy * factor_E_g, Ez_g_xy * factor_E_g
+Ex_g_xz, Ey_g_xz, Ez_g_xz = Ex_g_xz * factor_E_g, Ey_g_xz * factor_E_g, Ez_g_xz * factor_E_g
+Ex_d_xy, Ey_d_xy, Ez_d_xy = Ex_d_xy * factor_E_d, Ey_d_xy * factor_E_d, Ez_d_xy * factor_E_d
+Ex_d_xz, Ey_d_xz, Ez_d_xz = Ex_d_xz * factor_E_d, Ey_d_xz * factor_E_d, Ez_d_xz * factor_E_d
 
 # ============================================================
 # 4) Fuerzas opticas
@@ -75,8 +76,13 @@ Fx_d_xz, Fz_d_xz, Fg_x_d_xz, Fg_z_d_xz, Fs_x_d_xz, Fs_z_d_xz, Fsc_x_d_xz, Fsc_z_
     Ex_d_xz, Ey_d_xz, Ez_d_xz, dx_fuerzas, dz_fuerzas, alpha_p_d, alpha_pp_d, eps_m)
 
 a = 1  # peso relativo del haz dona al contrapropagar
-Fx_tot_xz = Fx_g_xz + a * Fx_d_xz
-Fz_tot_xz = Fz_g_xz - a * Fz_d_xz
+# CORREGIDO: el haz dona viaja hacia -z, asi que su fuerza es la imagen
+# especular (z -> -z) de la que se simulo. Antes: Fz_g - a*Fz_d, que invierte
+# bien el scattering (par en z) pero tambien la fuerza de gradiente (impar en
+# z), y los gradientes de los dos haces se RESTABAN en vez de sumarse.
+Fx_d_xz_cp, Fz_d_xz_cp = espejar_haz_contrapropagante(Fx_d_xz, Fz_d_xz)
+Fx_tot_xz = Fx_g_xz + a * Fx_d_xz_cp
+Fz_tot_xz = Fz_g_xz + a * Fz_d_xz_cp
 #%%
 # ============================================================
 # 5) Graficos esenciales
@@ -97,7 +103,7 @@ graficar_fuerza_total(Fx_tot_xz, -Fz_tot_xz, rango_grafico, 'Fuerza total (XZ)')
 
 graficar_comparacion(
     [(Fx_g_xz, -Fz_g_xz, "Gaussiano XZ"),
-     (a * Fx_d_xz, a * Fz_d_xz, "Dona XZ"),
+     (a * Fx_d_xz_cp, -a * Fz_d_xz_cp, "Dona XZ"),
      (Fx_tot_xz, -Fz_tot_xz, "Resultante XZ")],
     rango=rango_grafico,
 )
@@ -111,42 +117,28 @@ graficar_componentes(
 )
 #%%
 from graficos import graficar_intensidad, graficar_fuerza_total, graficar_comparacion, graficar_componentes
-n_g = 1.33 
-graficar_intensidad(Ex_g_xy, Ey_g_xy, Ez_g_xy, rango_grafico, n_g, 'Gaussiano (XY)')
-graficar_intensidad(Ex_d_xy, Ey_d_xy, Ez_d_xy, rango_grafico, n_g, 'Dona (XY)')
+# n del medio del foco de CADA haz (el que usa PyFocus), no n_g para los dos
+graficar_intensidad(Ex_g_xy, Ey_g_xy, Ez_g_xy, rango_grafico, gauss.n, 'Gaussiano (XY)')
+graficar_intensidad(Ex_d_xy, Ey_d_xy, Ez_d_xy, rango_grafico, dona.n, 'Dona (XY)')
 #%%
-graficar_intensidad(Ex_g_xz, Ey_g_xz, Ez_g_xz, rango_grafico, n_g, 'Gaussiano (XY)')
-graficar_intensidad(Ex_d_xz, Ey_d_xz, Ez_d_xz, rango_grafico, n_g, 'Dona (XY)')
+graficar_intensidad(Ex_g_xz, Ey_g_xz, Ez_g_xz, rango_grafico, gauss.n, 'Gaussiano (XZ)')
+graficar_intensidad(Ex_d_xz, Ey_d_xz, Ez_d_xz, rango_grafico, dona.n, 'Dona (XZ)')
 #%%
 # Guardado de campos de la dona (SI, post factor_E) para reusar en otros scripts
 np.savez('campos_dona_aceite.npz',
          Ex_xy=Ex_d_xy, Ey_xy=Ey_d_xy, Ez_xy=Ez_d_xy,
          Ex_xz=Ex_d_xz, Ey_xz=Ey_d_xz, Ez_xz=Ez_d_xz,
-         rango=rango_grafico, wavelength=dona.wavelength, n_medio=n_g)
+         rango=rango_grafico, wavelength=dona.wavelength, n_medio=dona.n)
 
 np.savez('campos_gauss_agua.npz',
          Ex_xy=Ex_g_xy, Ey_xy=Ey_g_xy, Ez_xy=Ez_g_xy,
          Ex_xz=Ex_g_xz, Ey_xz=Ey_g_xz, Ez_xz=Ez_g_xz,
-         rango=rango_grafico, wavelength=gauss.wavelength, n_medio=n_g)
+         rango=rango_grafico, wavelength=gauss.wavelength, n_medio=gauss.n)
 
 #%%
 "para invovar en otro lado"
 import numpy as np
-data = np.load('campos_dona.npz')
+data = np.load('campos_dona_aceite.npz')
 Ex_d_xy, Ey_d_xy, Ez_d_xy = data['Ex_xy'], data['Ey_xy'], data['Ez_xy']
 Ex_d_xz, Ey_d_xz, Ez_d_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
 rango_grafico = data['rango']
-
-
-
-
-
-
-
-
-
-
-
-
-
-

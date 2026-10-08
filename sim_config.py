@@ -11,6 +11,9 @@ Este es el UNICO lugar donde se deben modificar estos valores.
 gauss.py, dona.py, particula.py, fuerzas.py y main.py importan de aca
 en vez de tener cada uno su propia copia.
 """
+import json
+import os
+
 from scipy.constants import epsilon_0
 
 # --- Constantes fisicas ---
@@ -46,3 +49,20 @@ paso_espacial_nm = 9
 dx_fuerzas = paso_espacial_nm * 1e-9  # m
 dy_fuerzas = dx_fuerzas
 dz_fuerzas = dx_fuerzas
+
+
+# --- Calibracion foco -> BFP (la escribe calibracion_foco.py) ---
+# Si existe calibracion.json, beams/gauss.py y beams/dona.py usan los w0/I0 que
+# tenga guardados (calculados a partir de lo que medis en el foco) en vez de los
+# valores por defecto de cada archivo. Poner USAR_CALIBRACION = False para
+# volver a los valores escritos a mano en los archivos de haz.
+USAR_CALIBRACION = True
+RUTA_CALIBRACION = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'calibracion.json')
+
+
+def cargar_calibracion(nombre):
+    """Devuelve {'w0_mm':..., 'I0_mWcm2':...,...} del haz `nombre` ('gauss'/'dona'), o None."""
+    if not USAR_CALIBRACION or not os.path.exists(RUTA_CALIBRACION):
+        return None
+    with open(RUTA_CALIBRACION, encoding='utf-8') as fh:
+        return json.load(fh).get(nombre)

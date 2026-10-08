@@ -56,6 +56,30 @@ def calcular_factor_E(n_entrada=1.0):
     return np.sqrt(20 / (n_entrada * c * epsilon_0))
 
 
+def calcular_factor_E_foco(n_foco):
+    """
+    Factor PyFocus -> V/m con la normalizacion de energia correcta.
+    Reemplaza a calcular_factor_E(n_entrada=1.0), que sobreestimaba E en
+    sqrt(n_foco) (y las fuerzas, que son cuadraticas en E, en n_foco).
+    Detalle y verificacion en pyfocus_wrapper.factor_E_foco.
+    """
+    from pyfocus_wrapper import factor_E_foco
+    return factor_E_foco(n_foco)
+
+
+def espejar_haz_contrapropagante(Fx, Fz):
+    """
+    Fuerzas XZ de un haz que se simulo propagando hacia +z, pasadas al haz
+    IDENTICO que viaja hacia -z (imagen especular z -> -z):
+        Fx'(x, z) =  Fx(x, -z)        Fz'(x, z) = -Fz(x, -z)
+    Con foco simetrico en z, la fuerza de gradiente (impar en z) conserva su
+    sentido restaurador y la de scattering (par en z) invierte su sentido.
+    Las filas de los arreglos XZ de PyFocus van de -z a +z, asi que "z -> -z"
+    es dar vuelta el eje 0.
+    """
+    return Fx[::-1, :], -Fz[::-1, :]
+
+
 def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m):
     """Fuerza optica (gradiente + scattering + spin-curl) en el plano XY."""
     I = np.abs(ex) ** 2 + np.abs(ey) ** 2 + np.abs(ez) ** 2
