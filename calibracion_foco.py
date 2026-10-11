@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 calibracion_foco.py
 
@@ -210,7 +209,12 @@ def calibrar_haz(haz, w_foco_nm, metrica=None, P_mW=None, I_pico_kWcm2=None,
     metrica = metrica or _METRICA_DEFAULT[nombre]
     clave = metrica + '_nm'
     if P_mW is None and I_pico_kWcm2 is None:
-        raise ValueError("Pasa al menos P_mW o I_pico_kWcm2 para poder fijar I0.")
+        raise ValueError(
+            "Se encontró w_foco, pero falta una medida de intensidad/potencia "
+            "para determinar I0. Para el informe actual todavía no se carga "
+            "automaticamente la irradiancia de 7.46/8.80 mW/um^2 porque "
+            "primero hay que verificar que sea I_pico en el plano focal."
+        )
     avisos = []
     detectar_doble_division(verbose=verbose)
 
@@ -372,9 +376,38 @@ if __name__ == '__main__':
 
     #%% 2) Carga lo que MEDIS en el foco (dejar None lo que no midas) y calibra.
     #    ancho en nm; P_mW en la muestra; I_pico en kW/cm^2.
+    # -----------------------------------------------------------------------
+    # DATOS EXPERIMENTALES
+    #
+    # Del informe de Laboratorio 6/7:
+    #   - Para el haz de 532 nm se midio un ancho focal de
+    #         FWHM = (126.4 +/- 3.4) nm
+    #   - En otra medicion se reportan irradiancias de
+    #         7.46 +/- 0.25 mW/um^2
+    #         8.80 +/- 0.32 mW/um^2
+    #
+    # IMPORTANTE:
+    # El FWHM es una medida del foco y sirve para calibrar w0.
+    #
+    # Conversion:
+    #   1 mW/um^2 = 100 kW/cm^2
+    # -----------------------------------------------------------------------
     MEDICIONES = {
-        'gauss': dict(w_foco_nm=None, metrica='fwhm',     P_mW=None, I_pico_kWcm2=None, T_obj=1.0),
-        'dona':  dict(w_foco_nm=None, metrica='r_anillo', P_mW=None, I_pico_kWcm2=None, T_obj=1.0),
+        'gauss': dict(
+            w_foco_nm=330,
+            metrica='fwhm',
+            P_mW=1,
+            I_pico_kWcm2=None,   #
+            T_obj=1.0
+        ),
+
+        'dona': dict(
+            w_foco_nm=None,
+            metrica='r_anillo',
+            P_mW=None,
+            I_pico_kWcm2=None,
+            T_obj=1.0
+        ),
     }
     haces = {'gauss': gauss, 'dona': dona}
     for nombre, m in MEDICIONES.items():

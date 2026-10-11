@@ -1,0 +1,18 @@
+{
+  "gauss": {
+    "w0_mm": 5.389744899263512,
+    "I0_mWcm2": 4.744976015322429,
+    "objetivo": {
+      "metrica": "fwhm",
+      "w_foco_nm": 330,
+      "P_mW": 1,
+      "I_pico_kWcm2": null,
+      "T_obj": 1.0
+    },
+    "prediccion": {
+      "fwhm_nm": 330.00072848115167,
+      "I_pico_kWcm2": 898.0191650254404
+    },
+    "fecha": "2026-10-11 19:33"
+  }
+}

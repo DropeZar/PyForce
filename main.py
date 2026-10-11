@@ -18,7 +18,7 @@ from sim_config import eps_m, dx_fuerzas, dy_fuerzas, dz_fuerzas
 from beams import gauss, dona
 from particula import calc_alpha
 from fuerzas import calcular_factor_E_foco, espejar_haz_contrapropagante, fuerzas_xy, fuerzas_xz
-from graficos import graficar_fuerza_total, graficar_comparacion, graficar_componentes
+from graficos import graficar_fuerza_total, graficar_comparacion, graficar_componentes, graficar_componentes_XY
 
 # ============================================================
 # 1) Campos de cada haz
@@ -114,6 +114,14 @@ graficar_componentes(
      (Fsc_x_d_xz, Fsc_z_d_xz, 'F spin-curl')],
     rango=rango_grafico,
     titulo_general='Componentes de fuerza - haz Dona (XZ)',
+)
+
+graficar_componentes_XY(
+    [(Fg_x_d, Fg_y_d, 'F gradiente'),
+     (Fs_x_d, Fs_y_d, 'F scattering'),
+     (Fsc_x_d, Fsc_y_d, 'F spin-curl')],
+    rango=rango_grafico,
+    titulo_general='Componentes de fuerza - haz Dona (XY)',
 )
 #%%
 from graficos import graficar_intensidad, graficar_fuerza_total, graficar_comparacion, graficar_componentes
