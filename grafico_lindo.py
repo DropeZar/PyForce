@@ -129,6 +129,8 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
     n = mag_xy[0].shape[0]
     x = np.linspace(-rango_grafico / 2, rango_grafico / 2, n)
     extent = [x[0], x[-1], x[0], x[-1]]
+    # El plano XZ de PyFocus cubre sqrt(2) veces mas en x (ver sim_config.rango_xz)
+    rango_x_xz = rango_grafico * 2 ** 0.5
 
     fig = plt.figure(figsize=figsize)
     gs = GridSpec(3, 4, width_ratios=[1, 1, 1, 0.06], height_ratios=[1, 1, 0.6],
@@ -156,7 +158,7 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
     for i, ((Fx, Fz), tit) in enumerate(zip(campos_xz_plot, titulos)):
         ax = fig.add_subplot(gs[1, i])
         nz, nx = Fx.shape
-        x_xz = np.linspace(-rango_grafico / 2, rango_grafico / 2, nx)
+        x_xz = np.linspace(-rango_x_xz / 2, rango_x_xz / 2, nx)
         z_xz = np.linspace(-rango_grafico / 2, rango_grafico / 2, nz)
         extent_xz = [x_xz[0], x_xz[-1], z_xz[0], z_xz[-1]]
 
@@ -192,7 +194,7 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
         ax = fig.add_subplot(gs[2, i])
     
         nx = len(perfil)
-        x_xz = np.linspace(-rango_grafico / 2, rango_grafico / 2, nx)
+        x_xz = np.linspace(-rango_x_xz / 2, rango_x_xz / 2, nx)
     
         ax.plot(x_xz, perfil, color='tab:blue', linewidth=1.3)
         ax.axhline(0, color='gray', linewidth=0.6)

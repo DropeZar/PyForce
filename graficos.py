@@ -14,8 +14,13 @@ import matplotlib.pyplot as plt
 
 
 def _extent(shape, rango):
-    x = np.linspace(-rango / 2, rango / 2, shape[1])
-    y = np.linspace(-rango / 2, rango / 2, shape[0])
+    """
+    rango: ancho total del plano en nm, o (ancho_x, ancho_y) cuando los dos
+    ejes no miden lo mismo (plano XZ, ver sim_config.rango_xz).
+    """
+    rango_x, rango_y = rango if np.ndim(rango) else (rango, rango)
+    x = np.linspace(-rango_x / 2, rango_x / 2, shape[1])
+    y = np.linspace(-rango_y / 2, rango_y / 2, shape[0])
     return x, y, [x[0], x[-1], y[0], y[-1]]
 
 
@@ -77,7 +82,7 @@ def graficar_componentes(componentes, rango, titulo_general='',
 
     for ax, (Fx_c, Fz_c, titulo) in zip(axes, componentes):
         magnitud = np.sqrt(Fx_c ** 2 + Fz_c ** 2)
-        sp = ax.streamplot(x, y, Fx_c, -Fz_c, density=2, color=magnitud,
+        sp = ax.streamplot(x, y, Fx_c, Fz_c, density=2, color=magnitud,
                             cmap='inferno', linewidth=1.5)
         plt.colorbar(sp.lines, ax=ax, label='|F| (N)')
         ax.set_title(titulo)

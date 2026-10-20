@@ -44,6 +44,15 @@ z_steps = 5      # resolucion en z (nm)
 x_range = 1200      # rango en XY (nm)
 z_range = 1200     # rango en Z (nm)
 
+# Extension (ancho total, en nm) de los planos que devuelve PyFocus, para
+# poner bien los ejes de los graficos. En XY, x e y van de -x_range/2 a
+# x_range/2. En XZ, z va de -z_range/2 a z_range/2 pero x va de
+# -x_range/sqrt(2) a x_range/sqrt(2): PyFocus calcula el plano XZ hasta la
+# esquina de la grilla XY (ver PyFocus.plot.plot_XZ_XY), por eso los
+# arreglos XZ tienen ~sqrt(2) veces mas columnas que los XY.
+rango_xy = (x_range, x_range)
+rango_xz = (x_range * 2 ** 0.5, z_range)
+
 # --- Paso espacial para las derivadas/gradientes en fuerzas.py ---
 # np.gradient necesita la separacion REAL entre puntos de la grilla, que es
 # la resolucion que se le pide a PyFocus (x_steps, z_steps). No es un
