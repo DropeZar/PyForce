@@ -187,32 +187,63 @@ def calc_alpha_kuwata(wavelength_nm, a=radio_particula, eps_m_local=eps_m):
 
 # ─── Graficos ─────────────────────────────────────────────────────────────
 
-def graficar_alpha(lam_min=400, lam_max=900, n_puntos=700, a=radio_particula,
-                    eps_m_local=eps_m, longitudes_marcadas=(532, 592)):
-    """Re/Im/|alpha| (Mie) en funcion de la longitud de onda."""
+def graficar_alpha(lam_min=400, lam_max=900, n_puntos=1001, a=radio_particula,
+                    eps_m_local=eps_m,
+                    longitudes_marcadas=((532, 'dona', 'tab:green'), (592, 'gauss', 'tab:orange')),
+                    archivo=None):
+    """
+    Re(alpha) y Im(alpha) (Mie) en funcion de la longitud de onda, con las
+    longitudes de onda de los haces marcadas y sus valores. Sombrea donde
+    Re(alpha) < 0 y marca la resonancia (maximo de Im(alpha)).
+    archivo: si se da, guarda la figura ahi (png) en vez de mostrarla.
+    """
     import matplotlib.pyplot as plt
 
     lam_nm = np.linspace(lam_min, lam_max, n_puntos)
     ap, app = calc_alpha(lam_nm, a=a, eps_m_local=eps_m_local)
-    alpha_c = ap + 1j * app
+    esc = 1e-21  # se grafica en unidades de 1e-21 m^3
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(lam_nm, alpha_c.real, label=r"Re($\alpha$)", color="tab:blue")
-    ax.plot(lam_nm, alpha_c.imag, label=r"Im($\alpha$)", color="tab:red")
-    ax.plot(lam_nm, np.abs(alpha_c), label=r"$|\alpha|$", color="tab:green", ls="--")
+    ax.plot(lam_nm, ap / esc, color="tab:blue", lw=1.8,
+            label=r"$\alpha'$ = Re($\alpha$): gradiente")
+    ax.plot(lam_nm, app / esc, color="tab:red", lw=1.8,
+            label=r"$\alpha''$ = Im($\alpha$): scattering y spin-curl")
 
-    for lam0 in longitudes_marcadas:
-        if lam_min <= lam0 <= lam_max:
-            ax.axvline(lam0, color="gray", lw=0.7, ls=":")
+    negativo = ap < 0
+    if negativo.any():
+        ax.fill_between(lam_nm, 0, 1, where=negativo, color="tab:blue", alpha=0.08,
+                        transform=ax.get_xaxis_transform(), label=r"$\alpha' < 0$")
+    lam_res = lam_nm[np.argmax(app)]
+    ax.axvline(lam_res, color="tab:red", lw=0.8, ls="--")
+    ax.text(lam_res + 4, 0.03, f"resonancia\n{lam_res:.0f} nm", color="tab:red",
+            fontsize=8, va="bottom", transform=ax.get_xaxis_transform())
 
+    for lam0, nombre, color in longitudes_marcadas:
+        if not lam_min <= lam0 <= lam_max:
+            continue
+        p, pp = calc_alpha(lam0, a=a, eps_m_local=eps_m_local)
+        ax.axvline(lam0, color=color, lw=1.2, ls=":")
+        ax.plot([lam0, lam0], [p / esc, pp / esc], "o", color=color, ms=6, zorder=5)
+        ax.annotate(f"{nombre} ({lam0} nm)\n" + r"$\alpha'$" + f" = {p / esc:.2f}\n"
+                    + r"$\alpha''$" + f" = {pp / esc:.2f}",
+                    xy=(lam0, pp / esc), xytext=(8 if lam0 > lam_res else -8, 8),
+                    textcoords="offset points", fontsize=8, color=color,
+                    ha="left" if lam0 > lam_res else "right")  # lejos de la resonancia
+
+    ax.axhline(0, color="gray", lw=0.6)
     ax.set_xlabel("Longitud de onda [nm]")
-    ax.set_ylabel(r"$\alpha$  [m$^3$]")
-    ax.set_title(f"Polarizabilidad (Mie, dipolo a1) — nanoesfera Au, a={a*1e9:.0f} nm")
-    ax.axhline(0, color="gray", lw=0.5)
-    ax.legend()
+    ax.set_ylabel(r"$\alpha$  [$10^{-21}$ m$^3$]")
+    ax.set_title(f"Polarizabilidad (Mie, dipolo a1) — NP de Au de {2 * a * 1e9:.0f} nm "
+                 f"de diámetro en agua")
+    ax.set_xlim(lam_min, lam_max)
+    ax.legend(fontsize=8, loc="upper right")
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    plt.show()
+    if archivo:
+        fig.savefig(archivo, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
     return fig, ax
 
 
@@ -298,5 +329,10 @@ if __name__ == '__main__':
         q = secciones_eficaces(lam)
         print(f"         Qext, Qsca, Qpr  Mie completo: {np.round(q['completo'], 3)}   "
               f"solo dipolo: {np.round(q['dipolo'], 3)}")
+    import os
+    carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'resultados', 'polarizabilidad')
+    os.makedirs(carpeta, exist_ok=True)
+    graficar_alpha(archivo=os.path.join(carpeta, 'alpha_mie.png'))
     graficar_comparacion()
     comparar_radios()

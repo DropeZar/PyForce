@@ -81,6 +81,13 @@ mayor:
 | 592 nm (gauss) | 2.33e-21 | 3.33e-21 |
 | 532 nm (dona) | −0.38e-21 | 2.44e-21 |
 
+![Polarizabilidad](resultados/polarizabilidad/alpha_mie.png)
+
+Figura de `particula.py` (`graficar_alpha`). La resonancia (máximo de α″) está
+en 573 nm; en la franja sombreada (479–548 nm) α′ < 0. Los quiebres de las
+curvas vienen de interpolar linealmente la tabla de Johnson & Christy, que
+tiene un punto cada ~20–40 nm.
+
 La fuerza sobre el dipolo, `F = (ε₀ εm / 2) Re[α* Σⱼ Eⱼ* ∇Eⱼ]`, se separa en
 tres términos (`fuerzas.py` los calcula por separado y los suma):
 
