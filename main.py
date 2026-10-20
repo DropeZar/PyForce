@@ -21,7 +21,8 @@ from sim_config import eps_m, dx_fuerzas, dy_fuerzas, dz_fuerzas, rango_xy, rang
 from beams import gauss, dona
 from particula import calc_alpha
 from fuerzas import calcular_factor_E_foco, espejar_haz_contrapropagante, fuerzas_xy, fuerzas_xz
-from graficos import graficar_fuerza_total, graficar_comparacion, graficar_componentes, graficar_componentes_XY
+from graficos import (graficar_fuerza_total, graficar_comparacion,
+                      graficar_componentes, graficar_intensidad)
 
 # ============================================================
 # 1) Campos de cada haz
@@ -39,8 +40,6 @@ Ex_d_xz, Ey_d_xz, Ez_d_xz = fields_d["XZ"]
 # ============================================================
 alpha_p_g, alpha_pp_g = calc_alpha(gauss.wavelength)
 alpha_p_d, alpha_pp_d = calc_alpha(dona.wavelength)
-
-
 
 # ============================================================
 # 3) Conversion de campos a unidades SI
@@ -118,15 +117,14 @@ graficar_componentes(
     titulo_general='Componentes de fuerza - haz Dona (XZ)',
 )
 
-graficar_componentes_XY(
+graficar_componentes(
     [(Fg_x_d, Fg_y_d, 'F gradiente'),
      (Fs_x_d, Fs_y_d, 'F scattering'),
      (Fsc_x_d, Fsc_y_d, 'F spin-curl')],
-    rango=rango_xy,
+    rango=rango_xy, eje_y='y (nm)',
     titulo_general='Componentes de fuerza - haz Dona (XY)',
 )
 #%%
-from graficos import graficar_intensidad, graficar_fuerza_total, graficar_comparacion, graficar_componentes
 # n del medio del foco de CADA haz (el que usa PyFocus), no n_g para los dos
 graficar_intensidad(Ex_g_xy, Ey_g_xy, Ez_g_xy, rango_xy, gauss.n, 'Gaussiano (XY)')
 graficar_intensidad(Ex_d_xy, Ey_d_xy, Ez_d_xy, rango_xy, dona.n, 'Dona (XY)')
@@ -144,11 +142,3 @@ np.savez('campos_gauss_agua.npz',
          Ex_xy=Ex_g_xy, Ey_xy=Ey_g_xy, Ez_xy=Ez_g_xy,
          Ex_xz=Ex_g_xz, Ey_xz=Ey_g_xz, Ez_xz=Ez_g_xz,
          rango=rango_xy[0], wavelength=gauss.wavelength, n_medio=gauss.n)
-
-#%%
-"para invovar en otro lado"
-import numpy as np
-data = np.load('campos_dona_aceite.npz')
-Ex_d_xy, Ey_d_xy, Ez_d_xy = data['Ex_xy'], data['Ey_xy'], data['Ez_xy']
-Ex_d_xz, Ey_d_xz, Ez_d_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
-rango_grafico = data['rango']

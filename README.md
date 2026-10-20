@@ -31,14 +31,14 @@
 
 ## Cosas pendientes / a confirmar (ver también comentarios en el código)
 
-1. Revisar bien el cálculo de polarizabilidad porque el la posición de 
+1. Revisar bien el cálculo de polarizabilidad porque el la posición de
 los máximos cambia muy poco con el tamaño de la NP. Puede ser tranquilamente
 el límite del modelo. El cálculo depende de un factor de tamaño x = np.pi * a / lam
 entonces poner radio 60,40,20 no cambia tanto porque va dividido por la long de onda.
 
 2. Valores reales para la simulación: Como las simulaciones necesitan
 que le digas los datos antes de pasar por el objetivo, no sé cómo
-sacar la irradiancia I0 y el w0 del haz antes. 
+sacar la irradiancia I0 y el w0 del haz antes.
 **(Resuelto con `calibracion_foco.py`, ver abajo.)**
 
 3. Calibración de campo a unidades SI (`calcular_factor_E`)

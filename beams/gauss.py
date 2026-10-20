@@ -24,10 +24,6 @@ gamma = 0            # polarizacion: gamma=0, beta=0 -> lineal en x (gamma=45, b
 beta = 0
 z = 0                # plano focal (z=0)
 I0 = 20              # intensidad inicial de este haz (mW/cm^2)
-L = ''               # distancia de propagacion del haz antes del objetivo (m)
-R = ''               # radio de la mascara de fase (mm)
-ds = ''              # desplazamiento off-axis del haz (mm)
-z_int = ''           # posicion de interfaz dielectrica (nm)
 figure_name = 'gauss'
 
 # w0 e I0 son los del BFP (antes del objetivo). Si hay calibracion.json (ver
@@ -35,10 +31,6 @@ figure_name = 'gauss'
 _cal = cargar_calibracion('gauss')
 if _cal is not None:
     w0, I0 = _cal['w0_mm'], _cal['I0_mWcm2']
-
-parameters = [NA, n, h, w0, wavelength, gamma, beta, z,
-              x_steps, z_steps, x_range, z_range, I0,
-              L, R, ds, z_int, figure_name]
 
 
 def get_field():

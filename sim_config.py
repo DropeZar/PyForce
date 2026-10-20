@@ -14,10 +14,7 @@ de aca en vez de tener cada uno su propia copia.
 import json
 import os
 
-from scipy.constants import epsilon_0
-
-# --- Constantes fisicas ---
-c = 3e8  # m/s
+from scipy.constants import c  # m/s (la exacta, la usan fuerzas.py y pyfocus_wrapper.py)
 
 # --- Nanoparticula ---
 radio_particula = 40e-9  # m (radio de la NP de oro)

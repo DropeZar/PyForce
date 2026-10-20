@@ -23,10 +23,6 @@ gamma = 45            # polarizacion: 45 + beta=90 = circular derecha
 beta = 90
 z = 0                 # plano focal (z=0)
 I0 = 10               # intensidad inicial de este haz (mW/cm^2)
-L = ''                # distancia de propagacion del haz antes del objetivo (m)
-R = ''                # radio de la mascara de fase (mm)
-ds = ''               # desplazamiento off-axis del haz (mm)
-z_int = ''            # posicion de interfaz dielectrica (nm)
 figure_name = 'dona'
 
 # w0 e I0 son los del BFP (antes del objetivo). Si hay calibracion.json (ver
@@ -34,10 +30,6 @@ figure_name = 'dona'
 _cal = cargar_calibracion('dona')
 if _cal is not None:
     w0, I0 = _cal['w0_mm'], _cal['I0_mWcm2']
-
-parameters = [NA, n, h, w0, wavelength, gamma, beta, z,
-              x_steps, z_steps, x_range, z_range, I0,
-              L, R, ds, z_int, figure_name]
 
 
 def get_field():

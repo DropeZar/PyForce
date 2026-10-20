@@ -40,7 +40,6 @@ import numpy as np
 from scipy.optimize import brentq
 from PyFocus import sim
 
-import sim_config
 from sim_config import RUTA_CALIBRACION
 from pyfocus_wrapper import (campo_foco, detectar_doble_division,
                              intensidad_foco_mWcm2)
@@ -210,10 +209,8 @@ def calibrar_haz(haz, w_foco_nm, metrica=None, P_mW=None, I_pico_kWcm2=None,
     clave = metrica + '_nm'
     if P_mW is None and I_pico_kWcm2 is None:
         raise ValueError(
-            "Se encontró w_foco, pero falta una medida de intensidad/potencia "
-            "para determinar I0. Para el informe actual todavía no se carga "
-            "automaticamente la irradiancia de 7.46/8.80 mW/um^2 porque "
-            "primero hay que verificar que sea I_pico en el plano focal."
+            "El ancho del foco solo fija w0: pasa tambien P_mW o I_pico_kWcm2 "
+            "para poder fijar I0."
         )
     avisos = []
     detectar_doble_division(verbose=verbose)

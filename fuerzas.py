@@ -13,56 +13,15 @@ graficos.py. Este modulo solo hace cuentas.
 import numpy as np
 from scipy.constants import epsilon_0
 
-from sim_config import c
-
-
-def calcular_factor_E(n_entrada=1.0):
-    """
-    Factor de escala (constante) para convertir los campos que devuelve
-    PyFocus (en las unidades internas del paquete) a campo electrico
-    real en V/m.
-
-    Por que es una constante y no depende del campo simulado
-    -----------------------------------------------------------------
-    Adentro de PyFocus (confirmado en model/focus_field_calculators/
-    base.py, _calculate_amplitude_factors, tanto en la version <3.0
-    como en la actual), la amplitud de entrada se define como:
-
-        E1 = sqrt(I0) * cos(gamma) / wavelength * pi * f
-
-    Es decir, PyFocus usa I0 LITERALMENTE como |E0|^2 -- no aparece
-    en ningun lado el factor fisico (n*c*eps0/2) que relaciona
-    intensidad real (W/m^2) con campo electrico real (V/m). Es una
-    convencion de "unidades naturales" del paquete, no unidades SI.
-
-    Como toda la integral de Richards-Wolf de PyFocus escala
-    linealmente con sqrt(I0), esa misma proporcionalidad vale en TODO
-    punto del campo ya enfocado -- por eso, al despejar el factor de
-    conversion igualando la intensidad fisica real (I0, en el plano de
-    entrada, colimado, ANTES del objetivo -- ahi la aproximacion de
-    onda plana es valida) con la formula fisica I = (1/2) n c eps0
-    |E|^2, el propio I0 se cancela algebraicamente:
-
-        factor_E = sqrt(2 * (I0*10) / (n_entrada * c * eps0)) / sqrt(I0)
-                 = sqrt(20 / (n_entrada * c * eps0))
-
-    (el *10 es la conversion mW/cm^2 -> W/m^2 de las unidades de I0).
-
-    n_entrada es el indice de refraccion del medio DONDE SE DEFINE I0
-    -- el aire antes del objetivo (n=1) en este montaje, no el medio
-    de inmersion del objetivo (n_g/n_d). Por eso el factor es el mismo
-    para el haz gauss y para el haz dona: los dos I0 se definen en
-    aire, antes de sus respectivos objetivos.
-    """
-    return np.sqrt(20 / (n_entrada * c * epsilon_0))
 
 
 def calcular_factor_E_foco(n_foco):
     """
-    Factor PyFocus -> V/m con la normalizacion de energia correcta.
-    Reemplaza a calcular_factor_E(n_entrada=1.0), que sobreestimaba E en
-    sqrt(n_foco) (y las fuerzas, que son cuadraticas en E, en n_foco).
-    Detalle y verificacion en pyfocus_wrapper.factor_E_foco.
+    Factor (constante) para pasar los campos de PyFocus a V/m, usando el
+    indice del medio del foco. PyFocus usa I0 literalmente como |E0|^2 y no
+    incluye el sqrt(n1/n2) de Richards-Wolf; con n_entrada = 1 (version
+    anterior) E salia sqrt(n_foco) veces mas grande y las fuerzas n_foco
+    veces. Detalle y verificacion en pyfocus_wrapper.factor_E_foco.
     """
     from pyfocus_wrapper import factor_E_foco
     return factor_E_foco(n_foco)
@@ -150,7 +109,7 @@ def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m):
 
     Devuelve (Fx, Fz, Fg_x, Fg_z, Fs_x, Fs_z, Fsc_x, Fsc_z), en N.
     """
-    
+
     I = np.abs(ex) ** 2 + np.abs(ey) ** 2 + np.abs(ez) ** 2
 
     # ---- GRADIENTE ----

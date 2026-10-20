@@ -11,6 +11,7 @@ sim_config.rango_xz).
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.constants import epsilon_0 as eps0, c as c_luz
 
 
 def _extent(shape, rango):
@@ -72,7 +73,8 @@ def graficar_componentes(componentes, rango, titulo_general='',
     """
     Desglose de una fuerza total en sus componentes (gradiente,
     scattering, spin-curl). componentes: lista de tuplas
-    (Fx_componente, Fz_componente, titulo).
+    (F_horizontal, F_vertical, titulo); sirve para XZ (default) y para XY
+    pasando eje_y='y (nm)'.
     """
     fig, axes = plt.subplots(1, len(componentes), figsize=(5 * len(componentes), 5))
     if len(componentes) == 1:
@@ -90,59 +92,12 @@ def graficar_componentes(componentes, rango, titulo_general='',
         ax.set_ylabel(eje_y)
         ax.set_xlim(extent[0], extent[1])
         ax.set_ylim(extent[2], extent[3])
-
-    if titulo_general:
-        fig.suptitle(titulo_general, fontsize=14)
-    plt.tight_layout()
-    plt.show()
-
-from scipy.constants import epsilon_0 as eps0, c as c_luz
-
-def graficar_componentes_XY(componentes, rango, titulo_general='',
-                            eje_x='x (nm)', eje_y='y (nm)'):
-    """
-    Desglose de una fuerza total en sus componentes (gradiente,
-    scattering, spin-curl) en el plano XY.
-
-    componentes: lista de tuplas
-    (Fx_componente, Fy_componente, titulo).
-    """
-    fig, axes = plt.subplots(
-        1, len(componentes),
-        figsize=(5 * len(componentes), 5)
-    )
-
-    if len(componentes) == 1:
-        axes = [axes]
-
-    x, y, extent = _extent(componentes[0][0].shape, rango)
-
-    for ax, (Fx_c, Fy_c, titulo) in zip(axes, componentes):
-        magnitud = np.sqrt(Fx_c**2 + Fy_c**2)
-
-        sp = ax.streamplot(
-            x, y, Fx_c, Fy_c,
-            density=2,
-            color=magnitud,
-            cmap='inferno',
-            linewidth=1.5
-        )
-
-        plt.colorbar(sp.lines, ax=ax, label='|F| (N)')
-
-        ax.set_title(titulo)
-        ax.set_xlabel(eje_x)
-        ax.set_ylabel(eje_y)
-        ax.set_xlim(extent[0], extent[1])
-        ax.set_ylim(extent[2], extent[3])
         ax.set_aspect('equal')
 
     if titulo_general:
         fig.suptitle(titulo_general, fontsize=14)
-
     plt.tight_layout()
     plt.show()
-
 
 def graficar_intensidad(Ex, Ey, Ez, rango, n_medio, titulo,
                          eje_x='x (nm)', eje_y='y (nm)', corte='x'):

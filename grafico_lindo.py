@@ -117,14 +117,16 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
     Fx_d_xz, Fz_d_xz = espejar_haz_contrapropagante(Fx_d_xz, Fz_d_xz)
     Fz_tot_xz = Fz_g_xz + Fz_d_xz  # combinacion fisica (definicion unica, sin signo de display)
 
-    # convencion de signo SOLO para mostrar (streamplot fila 2 y cortes fila 3)
+    Fx_tot_xz = Fx_g_xz + Fx_d_xz
+
+    # convencion de signo SOLO para mostrar los cortes de la fila 3
     disp_Fz_g = -Fz_g_xz
     disp_Fz_d = -Fz_d_xz
     disp_Fz_tot = -Fz_tot_xz
 
     # magnitudes para colormap (no dependen del signo de display)
     mag_xy = [np.hypot(Fx_g, Fy_g), np.hypot(Fx_d, Fy_d), np.hypot(Fx_tot, Fy_tot)]
-    mag_xz = [np.hypot(Fx_g_xz, Fz_g_xz), np.hypot(Fx_d_xz, Fz_d_xz), np.hypot(Fx_tot_xz := Fx_g_xz + Fx_d_xz, Fz_tot_xz)]
+    mag_xz = [np.hypot(Fx_g_xz, Fz_g_xz), np.hypot(Fx_d_xz, Fz_d_xz), np.hypot(Fx_tot_xz, Fz_tot_xz)]
     vmax_xy, vmax_xz = max(m.max() for m in mag_xy), max(m.max() for m in mag_xz)
 
     n = mag_xy[0].shape[0]
@@ -139,7 +141,6 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
 
     titulos = ['Gaussiano', 'Dona', 'Resultante']
     campos_xy = [(Fx_g, Fy_g), (Fx_d, Fy_d), (Fx_tot, Fy_tot)]
-    campos_xz_plot = [(Fx_g_xz, disp_Fz_g), (Fx_d_xz, disp_Fz_d), (Fx_tot_xz, disp_Fz_tot)]
 
     # --- fila 1: XY ---
     for i, ((Fx, Fy), tit) in enumerate(zip(campos_xy, titulos)):
@@ -172,55 +173,55 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
         ax.set_title(f'{tit} XZ', fontsize=11)
         ax.set_xlabel('x (nm)')
         ax.set_ylabel('z (nm)' if i == 0 else '')
-        
+
     # --- fila 3: corte de Fz en z=0, con escala de fuerza compartida ---
     cortes = [disp_Fz_g, disp_Fz_d, disp_Fz_tot]
     calcular_fwhm_en = [True, False, True]
     ventanas_fwhm = [None, None, ventana_fwhm_resultante]
-    
+
     # Obtener los perfiles en z=0
     perfiles = []
     for perfil_completo in cortes:
         nz, nx = perfil_completo.shape
         fila_central = nz // 2
         perfiles.append(perfil_completo[fila_central, :])
-    
+
     # Misma escala vertical para los tres gráficos
     fuerza_max = max(np.max(np.abs(perfil)) for perfil in perfiles)
-    
+
     # Margen
     fuerza_max *= 1.1
-    
+
     for i, (perfil, tit) in enumerate(zip(perfiles, titulos)):
         ax = fig.add_subplot(gs[2, i])
-    
+
         nx = len(perfil)
         x_xz = np.linspace(-rango_x_xz / 2, rango_x_xz / 2, nx)
-    
+
         ax.plot(x_xz, perfil, color='tab:blue', linewidth=1.3)
         ax.axhline(0, color='gray', linewidth=0.6)
-    
+
         if calcular_fwhm_en[i]:
             ancho, xi, xd = calcular_fwhm(
                 x_xz, perfil, ventana=ventanas_fwhm[i]
             )
-    
+
             if ancho is not None:
                 i_izq = np.searchsorted(x_xz, xi)
                 i_der = np.searchsorted(x_xz, xd)
-    
+
                 y_half = (
                     perfil[min(i_izq, nx - 1)] +
                     perfil[min(i_der, nx - 1)]
                 ) / 2
-    
+
                 ax.hlines(
                     y_half, xi, xd,
                     color='tab:red',
                     linewidth=1.2,
                     linestyle='--'
                 )
-    
+
                 ax.annotate(
                     f'{ancho:.0f} nm',
                     xy=((xi + xd) / 2, y_half),
@@ -230,13 +231,13 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
                     fontsize=8,
                     color='tab:red'
                 )
-    
+
         if zoom:
             ax.set_xlim(-zoom, zoom)
-    
+
         # MISMA ESCALA DE FUERZA EN LOS TRES
         ax.set_ylim(-fuerza_max, fuerza_max)
-    
+
         ax.set_title(f'{tit} (z=0)', fontsize=10)
         ax.set_xlabel('x (nm)')
         ax.set_ylabel('Fz (pN)' if i == 0 else '')
@@ -262,21 +263,3 @@ if __name__ == '__main__':
                       titulo_general='Trampa óptica contrapropagante',
                       zoom=400,
                       ventana_fwhm_resultante=(-60, 60))  # << ajustar mirando el corte del resultante
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
