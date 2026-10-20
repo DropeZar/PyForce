@@ -19,8 +19,12 @@ Chequeos de interfaz.py:
   3) div E = 0 a los dos lados de la interfaz (diferencias finitas). Con
      el Ez tal como lo devuelve PyFocus (signo opuesto) daria ~2.
 
+  4) fuerzas.py: gradiente + scattering (Poynting) + spin-curl tiene que
+     dar la fuerza dipolar exacta (eps/2) Re[alpha* E_j* grad E_j], con las
+     derivadas fuera del plano exactas, para polarizacion lineal y circular.
+
 Resultado esperado: errores ~1e-13 en (1), ~1e-8 en (2) (por evaluar a
-z_int -+ 1e-6 nm) y ~1e-6 en (3) (diferencias finitas).
+z_int -+ 1e-6 nm), ~1e-6 en (3) y ~1e-3 en (4) (diferencias finitas).
 
 Uso:  python validar_interfaz.py
 """
@@ -96,7 +100,36 @@ def divergencia(n2=1.52, z_int=300.0, h=0.5):
               f"   (con -Ez: {np.abs(dEx + dEy - dEz).max() / np.abs(dEx).max():.1f})")
 
 
+def fuerza_dipolar(n2=1.52, z_int=300.0):
+    from scipy.constants import epsilon_0
+    from fuerzas import calcular_factor_E_foco, fuerzas_xz
+    from interfaz import ejes_xz
+    from particula import calc_alpha
+    from sim_config import eps_m
+    ap, app = calc_alpha(gauss.wavelength)
+    fE = calcular_factor_E_foco(gauss.n)
+    x, z = ejes_xz(5, 5, 1200, 1200)
+    d = 5e-9
+    print("4) gradiente + Poynting + spin-curl vs fuerza dipolar exacta (plano XZ)")
+    for pol in ((0, 0), (45, 90)):
+        foco = FocoConInterfaz(gauss.NA, gauss.n, gauss.h, gauss.w0, gauss.wavelength,
+                               *pol, gauss.I0, n2=n2, z_int=z_int)
+        E = [e * fE for e in foco.plano_xz(x, z)]
+        Dy = [e * fE * 1e9 for e in foco.derivada_xz_y(x, z)]
+        Fx, Fz, *_ = fuerzas_xz(*E, d, d, ap, app, eps_m, dE_dy=Dy)
+        Dx = [np.gradient(e, d, axis=1) for e in E]
+        Dz = [np.gradient(e, d, axis=0) for e in E]
+        a = ap + 1j * app
+        Fx_ex = epsilon_0 * eps_m / 2 * np.real(np.conj(a) * sum(np.conj(e) * de for e, de in zip(E, Dx)))
+        Fz_ex = epsilon_0 * eps_m / 2 * np.real(np.conj(a) * sum(np.conj(e) * de for e, de in zip(E, Dz)))
+        ok = (z < z_int - 10)[:, None] & (np.abs(x) < 800)[None, :]  # lejos de la interfaz y los bordes
+        ok[:2], ok[-2:] = False, False
+        err = max(np.abs(Fx - Fx_ex)[ok].max(), np.abs(Fz - Fz_ex)[ok].max()) / np.abs(Fz_ex[ok]).max()
+        print(f"   polarizacion gamma={pol[0]}, beta={pol[1]}: {err:.1e}")
+
+
 if __name__ == '__main__':
     comparar_con_pyfocus()
     condiciones_de_borde()
     divergencia()
+    fuerza_dipolar()

@@ -9,6 +9,19 @@ convertir esos campos a unidades SI.
 
 No hay graficos ni prints de diagnostico aca -- eso vive en
 graficos.py. Este modulo solo hace cuentas.
+
+Descomposicion de la fuerza dipolar
+-----------------------------------
+La fuerza exacta sobre un dipolo es F = (eps/2) Re[alpha* sum_j E_j* grad E_j]
+= (eps alpha'/4) grad|E|^2 + (eps alpha''/2) Im[E_j* grad E_j]. El segundo
+termino (momento "orbital") es igual a Poynting + spin-curl:
+
+    Im[E_j* grad E_j] = Im[E* x (rot E)] + Im[(E* . grad) E]
+
+Por eso aca el scattering se calcula con el vector de Poynting y el total
+es gradiente + scattering + spin-curl, que da exactamente la fuerza
+dipolar. (Antes el scattering usaba Im[E_j* grad E_j], que ya incluye el
+spin-curl: sumarle Fsc lo contaba dos veces.)
 """
 import numpy as np
 from scipy.constants import epsilon_0
@@ -46,12 +59,16 @@ def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m, dE_dz=None):
     Campos en V/m, pasos en m, alpha en m^3. Las filas tienen que ir de -y a
     +y (como devuelven pyfocus_wrapper.campo_foco e interfaz.py).
 
-    El spin-curl necesita derivadas en z, que un solo plano no tiene:
+    Total = gradiente + scattering (Poynting) + spin-curl (ver arriba).
+
+    Scattering y spin-curl necesitan derivadas en z, que un solo plano no tiene:
     - dE_dz = (dEx/dz, dEy/dz, dEz/dz) en V/m^2, si se las tiene (p. ej.
       de planos en z +- dz). Es lo exacto.
     - Si dE_dz es None: dEz/dz sale de div E = 0 (exacto en un medio
       homogeneo, asi los terminos con div E se anulan como deben) y
-      dEx/dz = dEy/dz = 0 (aproximacion: falta el aporte de Ez* dEx/dz).
+      dEx/dz = dEy/dz = 0 (aproximacion: faltan los terminos con Ez* dEx/dz
+      y Ez* dEy/dz; en el foco de un haz polarizado linealmente son chicos,
+      pero no en general).
     dz no se usa; queda en la firma por compatibilidad.
 
     Devuelve (Fx, Fy, Fg_x, Fg_y, Fs_x, Fs_y, Fsc_x, Fsc_y), en N.
@@ -79,8 +96,12 @@ def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m, dE_dz=None):
     else:
         dEx_dz, dEy_dz, dEz_dz = dE_dz
 
-    Sx = np.imag(np.conj(ex) * dEx_dx + np.conj(ey) * dEy_dx + np.conj(ez) * dEz_dx)
-    Sy = np.imag(np.conj(ex) * dEx_dy + np.conj(ey) * dEy_dy + np.conj(ez) * dEz_dy)
+    # vector de Poynting: Im(E* x (rot E))
+    rot_x = dEz_dy - dEy_dz
+    rot_y = dEx_dz - dEz_dx
+    rot_z = dEy_dx - dEx_dy
+    Sx = np.imag(np.conj(ey) * rot_z - np.conj(ez) * rot_y)
+    Sy = np.imag(np.conj(ez) * rot_x - np.conj(ex) * rot_z)
     Fs_x = epsilon_0 * eps_m * alpha_pp / 2 * Sx
     Fs_y = epsilon_0 * eps_m * alpha_pp / 2 * Sy
 
@@ -110,13 +131,15 @@ def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m, dE_dy=None):
     Fuerza optica (gradiente + scattering + spin-curl) en el plano XZ
     (y = 0). Filas de -z a +z, columnas de -x a +x.
 
-    El spin-curl necesita derivadas en y, que un solo plano no tiene:
+    Total = gradiente + scattering (Poynting) + spin-curl (ver arriba).
+
+    Scattering y spin-curl necesitan derivadas en y, que un solo plano no tiene:
     - dE_dy = (dEx/dy, dEy/dy, dEz/dy) en V/m^2, si se las tiene (p. ej.
       de planos en y = +-dy). Es lo exacto.
     - Si dE_dy es None: dEy/dy sale de div E = 0 (exacto en un medio
       homogeneo) y dEx/dy = dEz/dy = 0. Para un haz polarizado en x
-      (Ey = 0 en y = 0) esto es exacto; en general falta el aporte de
-      Ey* dE/dy.
+      (Ey = 0 en y = 0) esto es exacto; en general faltan los terminos con
+      Ey* dE/dy (con polarizacion circular, ~50 % del spin-curl).
 
     Devuelve (Fx, Fz, Fg_x, Fg_z, Fs_x, Fs_z, Fsc_x, Fsc_z), en N.
     """
@@ -144,8 +167,12 @@ def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m, dE_dy=None):
     else:
         dEx_dy, dEy_dy, dEz_dy = dE_dy
 
-    Sx = np.imag(np.conj(ex) * dEx_dx + np.conj(ey) * dEy_dx + np.conj(ez) * dEz_dx)
-    Sz = np.imag(np.conj(ex) * dEx_dz + np.conj(ey) * dEy_dz + np.conj(ez) * dEz_dz)
+    # vector de Poynting: Im(E* x (rot E))
+    rot_x = dEz_dy - dEy_dz
+    rot_y = dEx_dz - dEz_dx
+    rot_z = dEy_dx - dEx_dy
+    Sx = np.imag(np.conj(ey) * rot_z - np.conj(ez) * rot_y)
+    Sz = np.imag(np.conj(ex) * rot_y - np.conj(ey) * rot_x)
     Fs_x = epsilon_0 * eps_m * alpha_pp / 2 * Sx
     Fs_z = epsilon_0 * eps_m * alpha_pp / 2 * Sz
 
