@@ -17,7 +17,11 @@ import os
 from scipy.constants import c  # m/s (la exacta, la usan fuerzas.py y pyfocus_wrapper.py)
 
 # --- Nanoparticula ---
-radio_particula = 40e-9  # m (radio de la NP de oro)
+radio_particula = 50e-9  # m (radio de la NP de oro: diametro de 100 nm)
+
+# Fuerza hacia el vidrio necesaria para imprimir una NP de oro (medida en el
+# laboratorio). fuerzas_gauss_interfaz.py la usa para dar la potencia minima.
+F_IMPRESION_pN = 0.6
 
 # --- Medios ---
 # n_g y n_d NO son dos medios distintos donde vive la particula -- la
