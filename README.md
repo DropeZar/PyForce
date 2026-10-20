@@ -26,6 +26,8 @@ python main.py            # campos -> fuerzas -> gráficos; guarda los campos en
 python grafico_lindo.py   # figura resumen 3x3 a partir de los .npz
 python particula.py       # comparación Kuwata vs Mie de la polarizabilidad
 python calibracion_foco.py
+python fuerzas_gauss_interfaz.py   # gauss con y sin el vidrio -> resultados/gauss_interfaz/
+python validar_interfaz.py         # chequeos de interfaz.py contra PyFocus
 ```
 
 `main.py` y `calibracion_foco.py` están divididos en celdas (`#%%`) para
@@ -54,6 +56,10 @@ Ex_xz, Ey_xz, Ez_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
 | `calibracion_foco.py` | De lo medido en el foco a los `w0`/`I0` del back focal plane (ver abajo). |
 | `calibracion_foco_gauss.py` | Predicción rápida del foco del haz gaussiano para unos `w0`/`I0` a mano. |
 | `calibracion.json` | Resultado de la calibración; lo leen `beams/*.py` al importarse. |
+| `interfaz.py` | Foco de un haz gaussiano con una interfaz plana (agua/vidrio): Richards-Wolf + Fresnel, mismas grillas y unidades que PyFocus. |
+| `validar_interfaz.py` | Chequea `interfaz.py`: sin interfaz coincide con `sim.no_mask` a 1e-14; con interfaz cumple las condiciones de borde. |
+| `fuerzas_gauss_interfaz.py` | Fuerzas del gauss calibrado sin vidrio y con el vidrio a varias distancias del foco. |
+| `resultados/` | Figuras y resúmenes publicados (ver [Resultados](#resultados)). |
 | `Objetivos.txt` | NA, n, h y f de los objetivos disponibles. |
 
 ## Detalles de la física y de PyFocus
@@ -80,6 +86,40 @@ especular (z → −z) de las simuladas (`fuerzas.espejar_haz_contrapropagante`)
 **Spin-curl en XZ.** `fuerzas_xz` devuelve el término de spin-curl por separado
 pero no lo suma al total (sí lo hace `fuerzas_xy`).
 
+**Interfaz agua/vidrio.** El portaobjetos (n = 1.52, con aceite de índice
+igualado abajo) se trata como semi-infinito. PyFocus no sirve para esto:
+`sim.no_mask`/`sim.VP` ignoran la interfaz, y en `sim.custom` (3.4.0) la onda
+reflejada de la componente x no lleva la fase `exp(2i k1 cosθ z_int)`, así que
+con polarización en x solo es correcta con la interfaz en el foco.
+`interfaz.py` lo resuelve por su cuenta (ver su docstring).
+
+**Otras rarezas de PyFocus** (no cambian |E|², ni las fuerzas de gradiente y
+scattering): `sim.no_mask` devuelve Ez con el signo opuesto al físico, y su
+plano XY tiene las filas de +y a −y, la grilla corrida medio píxel en y y el
+radio de cada píxel redondeado.
+
+## Resultados
+
+### Haz gaussiano con y sin el vidrio (`resultados/gauss_interfaz/`)
+
+Gauss calibrado (FWHM = 330 nm, P = 1 mW), NP de Au de 40 nm en agua, vidrio a
+d = 250, 500 y 1000 nm del foco. Tabla completa en
+[`resumen.md`](resultados/gauss_interfaz/resumen.md).
+
+![Fuerzas XZ](resultados/gauss_interfaz/fuerzas_xz.png)
+![Perfiles](resultados/gauss_interfaz/perfiles.png)
+![Plano focal](resultados/gauss_interfaz/fuerzas_xy.png)
+
+- La reflexión en el vidrio (≈ 0.5 % en intensidad a incidencia normal)
+  interfiere con el haz incidente y modula la intensidad sobre el eje en
+  ±10 % con período λ/2n ≈ 220 nm. Fz pasa a oscilar alrededor del valor sin
+  vidrio, con picos de hasta 1.4 veces.
+- En el plano focal el cambio es chico: con el vidrio a 250 nm la rigidez
+  transversal baja de 1.40 a 1.25 pN/µm; a 1000 nm ya no se nota.
+- Con un solo haz gaussiano no hay trampa axial (con o sin vidrio): la fuerza
+  de scattering gana en todo el eje y empuja la partícula hacia el vidrio.
+  Transversalmente sí atrapa (pozo de ~8 kT a 1 mW).
+
 ## Calibración foco → BFP (`calibracion_foco.py`)
 
 `w0` e `I0` de `beams/gauss.py` y `beams/dona.py` son los del back focal plane
@@ -105,6 +145,6 @@ Métricas de ancho: `'fwhm'` y `'r_1e2'` (gauss), `'r_anillo'` y
 - La posición del máximo de la polarizabilidad de Kuwata cambia poco con el
   radio de la NP. Puede ser el límite del modelo; `particula.comparar_radios()`
   lo compara con Mie exacto.
-- El haz gaussiano usa `n = 1.35` en el foco mientras que la partícula está en
-  agua (`n_g = 1.33` en `sim_config.py`): revisar cuál corresponde.
+- Agregar la interfaz al haz dona (necesita la máscara de vórtice en
+  `interfaz.py`) y armar la trampa contrapropagante completa con el vidrio.
 - Falta calibrar el haz dona (`calibracion.json` solo tiene el gauss).

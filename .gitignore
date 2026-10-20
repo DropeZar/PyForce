@@ -9,3 +9,6 @@ __pycache__/
 *.png
 *.svg
 *.pdf
+
+# ...salvo los resultados que se publican a propósito
+!resultados/**/*.png
