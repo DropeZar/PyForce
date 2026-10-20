@@ -45,10 +45,13 @@ x_range = 1200      # rango en XY (nm)
 z_range = 1200     # rango en Z (nm)
 
 # --- Paso espacial para las derivadas/gradientes en fuerzas.py ---
-paso_espacial_nm = 9
-dx_fuerzas = paso_espacial_nm * 1e-9  # m
+# np.gradient necesita la separacion REAL entre puntos de la grilla, que es
+# la resolucion que se le pide a PyFocus (x_steps, z_steps). No es un
+# parametro libre: si no coincide con la grilla, todas las fuerzas quedan
+# escaladas por (paso de grilla / paso usado).
+dx_fuerzas = x_steps * 1e-9  # m
 dy_fuerzas = dx_fuerzas
-dz_fuerzas = dx_fuerzas
+dz_fuerzas = z_steps * 1e-9  # m
 
 
 # --- Calibracion foco -> BFP (la escribe calibracion_foco.py) ---
