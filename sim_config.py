@@ -29,6 +29,7 @@ radio_particula = 40e-9  # m (radio de la NP de oro)
 # polarizabilidad en particula.py) se calcula con n_g para ambos haces.
 n_g = 1.33   # indice de refraccion del medio real de la particula (agua)
 n_d = 1.52   # indice de inmersion del objetivo para el haz dona (no es el medio de la particula)
+n_vidrio = 1.52  # portaobjetos (con aceite de indice igualado abajo: se trata como semi-infinito)
 
 eps_m = n_g ** 2  # permitividad del agua -- misma particula, mismo medio, para los dos haces
 
