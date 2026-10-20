@@ -91,7 +91,7 @@ def calcular_fwhm(x, y, ventana=None):
 
 def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
                       cmap='viridis', figsize=(11, 9), zoom=300,
-                      ventana_fwhm_resultante=None):
+                      ventana_fwhm_resultante=None, archivo=None):
     """
     rango_grafico : tiene que coincidir EXACTAMENTE con el x_range/z_range
     de sim_config.py usado al generar los .npz -- es la calibracion de
@@ -252,14 +252,20 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
     if titulo_general:
         fig.suptitle(titulo_general, fontsize=14, y=0.98)
 
-    plt.savefig(f'{titulo_general or "resumen"}.png', dpi=200, bbox_inches='tight')
-    plt.savefig(f'{titulo_general or "resumen"}.svg', bbox_inches='tight')
+    archivo = archivo or (titulo_general or 'resumen')
+    plt.savefig(f'{archivo}.png', dpi=200, bbox_inches='tight')
+    plt.savefig(f'{archivo}.svg', bbox_inches='tight')
     plt.show()
 
 
 if __name__ == '__main__':
+    import os
+    carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'resultados', 'haces_contrapropagantes')
+    os.makedirs(carpeta, exist_ok=True)
     graficar_resumen('campos_gauss_agua.npz', 'campos_dona_aceite.npz',
                       rango_grafico=1200,  # << debe coincidir con sim_config.x_range de la corrida
                       titulo_general='Haces contrapropagantes gauss + dona',
                       zoom=400,
-                      ventana_fwhm_resultante=(-60, 60))  # << ajustar mirando el corte del resultante
+                      ventana_fwhm_resultante=(-60, 60),  # << ajustar mirando el corte del resultante
+                      archivo=os.path.join(carpeta, 'resumen'))

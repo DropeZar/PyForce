@@ -17,12 +17,14 @@ from pyfocus_wrapper import campo_foco
 NA = 1.3              # apertura numerica
 n = 1.51822           # indice del medio del foco (aceite de inmersion). Agua=1.33, aire=1.00
 h = 2.6               # radio de apertura del objetivo (mm)
-w0 = 5                # radio del haz gaussiano de entrada (mm)
+w0 = 5                # radio del haz gaussiano de entrada (mm). PROVISORIO, sin calibrar:
+                      # w0/h ~ 1.9, el mismo llenado que el gauss calibrado
 wavelength = 532      # longitud de onda (nm)
 gamma = 45            # polarizacion: 45 + beta=90 = circular derecha
 beta = 90
 z = 0                 # plano focal (z=0)
-I0 = 10               # intensidad inicial de este haz (mW/cm^2)
+I0 = 6.1              # intensidad en el BFP (mW/cm^2). PROVISORIO, sin calibrar: da
+                      # ~1 mW en la muestra con este w0 (calibracion_foco.predecir_foco)
 figure_name = 'dona'
 
 # w0 e I0 son los del BFP (antes del objetivo). Si hay calibracion.json (ver
