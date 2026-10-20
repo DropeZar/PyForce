@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ```bash
 python main.py            # campos -> fuerzas -> gráficos; guarda los campos en .npz
 python grafico_lindo.py   # figura resumen 3x3 a partir de los .npz
-python particula.py       # comparación Kuwata vs Mie de la polarizabilidad
+python particula.py       # polarizabilidad de Mie, Mie completo vs dipolo, comparación con Kuwata
 python calibracion_foco.py
 python fuerzas_gauss_interfaz.py   # printing con el gauss, con y sin vidrio -> resultados/gauss_interfaz/
 python validar_interfaz.py         # chequeos de interfaz.py y fuerzas.py
@@ -50,7 +50,7 @@ Ex_xz, Ey_xz, Ez_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
 |---|---|
 | `sim_config.py` | **Único lugar** con los parámetros compartidos: radio de la partícula, índices de los medios, grilla de PyFocus, paso de las derivadas y extensión de los planos XY/XZ. |
 | `beams/gauss.py`, `beams/dona.py` | Parámetros propios de cada haz (`NA`, `n`, `h`, `w0`, `λ`, polarización, `I0`) y su `get_field()`. |
-| `particula.py` | Polarizabilidad del oro (tabla de Johnson & Christy 1972): Kuwata (`calc_alpha`, la que se usa) y Mie exacto (`calc_alpha_mie`, para validar). |
+| `particula.py` | Polarizabilidad del oro con teoría de Mie (tabla de Johnson & Christy 1972): `calc_alpha` (dipolo a1, la que se usa), coeficientes y secciones eficaces completas, y Kuwata solo para comparar. |
 | `fuerzas.py` | Funciones puras: factor de conversión a V/m, fuerzas (gradiente + scattering + spin-curl) en XY y XZ, espejado del haz contrapropagante. |
 | `graficos.py` | Mapas de magnitud + streamplot, comparación entre haces, desglose en componentes e intensidad. |
 | `grafico_lindo.py` | Figura resumen 3x3 (XY, XZ y corte de Fz en z = 0 con FWHM) a partir de los `.npz`. |
@@ -63,6 +63,60 @@ Ex_xz, Ey_xz, Ez_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
 | `fuerzas_gauss_interfaz.py` | Printing con el gauss calibrado: fuerzas sin vidrio y con el vidrio en el foco. |
 | `resultados/` | Figuras y resúmenes publicados (ver [Resultados](#resultados)). |
 | `Objetivos.txt` | NA, n, h y f de los objetivos disponibles. |
+
+## Fuerzas sobre la partícula
+
+La NP de oro (diámetro 100 nm) es chica frente a la longitud de onda en agua
+(λ/n ≈ 400–450 nm), así que se la trata como un **dipolo** inducido
+`p = ε₀ εm α E`. La polarizabilidad α sale de la teoría de Mie (coeficiente
+a1, `particula.calc_alpha`). Sus dos partes juegan papeles distintos:
+
+- **α′ (parte real):** la NP responde en fase con el campo. Da la fuerza de
+  gradiente.
+- **α″ (parte imaginaria):** la NP absorbe y dispersa luz. Da el scattering y
+  el spin-curl.
+
+Para el oro, cerca de la resonancia plasmónica, α″ es del orden de α′ o
+mayor:
+
+| λ (haz) | α′ (m³) | α″ (m³) |
+|---|---|---|
+| 592 nm (gauss) | 2.33e-21 | 3.33e-21 |
+| 532 nm (dona) | −0.38e-21 | 2.44e-21 |
+
+La fuerza sobre el dipolo, `F = (ε₀ εm / 2) Re[α* Σⱼ Eⱼ* ∇Eⱼ]`, se separa en
+tres términos (`fuerzas.py` los calcula por separado y los suma):
+
+1. **Gradiente** — `F_grad = (ε₀ εm α′ / 4) ∇|E|²`.
+   Es conservativa. Con α′ > 0 lleva la NP hacia donde la luz es más
+   intensa; con α′ < 0, hacia donde es menos intensa. A 532 nm, α′ < 0 para
+   esta NP: el gradiente de la dona la empuja hacia el centro oscuro del
+   anillo, no hacia el anillo.
+2. **Scattering (presión de radiación)** — `F_scat = (ε₀ εm α″ / 2) Im[E* × (∇ × E)]`.
+   Sigue el flujo de energía (vector de Poynting), o sea, empuja en el
+   sentido en que viaja la luz. Para el oro es la fuerza dominante: es la que
+   **lleva la NP hasta el vidrio y la imprime**.
+3. **Spin-curl** — `F_sc = (ε₀ εm α″ / 2) Im[(E* · ∇) E]`.
+   Viene del rotor de la densidad de espín de la luz. En un foco muy cerrado
+   el campo tiene componente Ez en cuadratura con Ex, y aparece aunque el haz
+   esté polarizado linealmente. En el foco del gauss **se opone al
+   scattering** y le resta ~15 %.
+
+Gradiente + scattering + spin-curl da exactamente la fuerza dipolar
+(`validar_interfaz.py` lo comprueba). El scattering tiene que ser el de
+Poynting: el término "orbital" `Im[Eⱼ* ∇Eⱼ]` ya incluye el spin-curl.
+
+**Para imprimir** hace falta que la fuerza hacia el vidrio en el punto de
+contacto (centro de la NP a un radio del vidrio) llegue a
+**≈ 0.6 pN** (medido; `sim_config.F_IMPRESION_pN`). Lateralmente, el
+gradiente lleva la NP hacia el eje del haz, lo que fija dónde queda impresa.
+
+**Validez del modelo dipolar.** Con a = 50 nm, los multipolos más altos de Mie
+pesan poco. Comparando la presión de radiación de una onda plana con Mie
+completo y solo con a1 (`particula.secciones_eficaces`), el dipolo la
+subestima un 1 % a 592 nm y un 4 % a 532 nm. No se incluyen la interacción de
+la NP con su propia imagen en el vidrio ni fuerzas de contacto (van der
+Waals, electrostáticas).
 
 ## Detalles de la física y de PyFocus
 
@@ -84,13 +138,6 @@ esquina de la grilla XY), y sus filas van de −z a +z.
 
 **Haz contrapropagante.** La dona viaja hacia −z: sus fuerzas XZ son la imagen
 especular (z → −z) de las simuladas (`fuerzas.espejar_haz_contrapropagante`).
-
-**Descomposición de la fuerza.** La fuerza sobre el dipolo,
-`F = (ε/2) Re[α* Σ E_j* ∇E_j]`, se separa en gradiente + scattering (vector de
-Poynting) + spin-curl, y `fuerzas_xy`/`fuerzas_xz` suman las tres. El
-scattering tiene que ser el de Poynting: el término "orbital"
-`Im[E_j* ∇E_j]` ya incluye el spin-curl, y sumarlo de nuevo lo cuenta dos veces.
-`validar_interfaz.py` comprueba que el total coincide con la fuerza dipolar.
 
 **Derivadas fuera del plano.** Scattering y spin-curl necesitan derivadas
 perpendiculares al plano calculado (∂/∂z en XY, ∂/∂y en XZ). `interfaz.py` las
@@ -116,27 +163,29 @@ cada píxel se redondea, lo que mete ruido en las derivadas.
 
 ### Printing con el haz gaussiano, con y sin vidrio (`resultados/gauss_interfaz/`)
 
-Gauss calibrado (FWHM = 330 nm, P = 1 mW), NP de Au de 40 nm en agua, foco
-sobre la superficie del vidrio (z = 0). La NP queda impresa con el centro en
-z = −a = −40 nm (plano de contacto). Tabla completa en
+Gauss calibrado (FWHM = 330 nm, P = 1 mW), NP de Au de 100 nm de diámetro en
+agua, foco sobre la superficie del vidrio (z = 0). La NP queda impresa con el
+centro en z = −a = −50 nm (punto de contacto). Tabla completa en
 [`resumen.md`](resultados/gauss_interfaz/resumen.md).
 
 ![Fuerzas XZ](resultados/gauss_interfaz/fuerzas_xz.png)
-![Perfiles](resultados/gauss_interfaz/perfiles.png)
 ![Plano de contacto](resultados/gauss_interfaz/fuerzas_xy.png)
 
-- **Empuje hacia el vidrio en el contacto: baja casi a la mitad** (de 0.081 a
-  0.043 pN a 1 mW). La reflexión en el vidrio (≈ 0.5 % en intensidad) forma
-  una onda estacionaria con período λ/2n ≈ 220 nm. Justo en el contacto, su
-  gradiente apunta hacia arriba (−0.035 pN) y le resta al scattering
-  (+0.112 pN). El spin-curl también se opone (−0.034 pN), con y sin vidrio.
-- **En el camino hacia el vidrio**, Fz oscila alrededor del valor sin vidrio
-  pero es positiva en todo el último 1.4 µm sobre el eje: la onda
-  estacionaria no frena a la NP antes de llegar al vidrio.
-- **Guiado lateral en el contacto: cambia poco.** La fuerza que lleva la NP
-  al eje baja ~9 % (−dFx/dx de 1.41 a 1.28 pN/µm, máximo de 0.140 a
-  0.129 pN). El radio dentro del cual la NP es llevada al eje queda en
-  ~465 nm. Casi toda la fuerza lateral es de gradiente.
+Fuerza hacia el vidrio en el punto de contacto, sobre el eje, a 1 mW:
+
+| caso | total | gradiente | scattering | spin-curl | potencia para 0.6 pN |
+|---|---|---|---|---|---|
+| sin vidrio | 1.59 pN | +0.01 | +1.87 | −0.28 | 0.38 mW |
+| con vidrio | 1.44 pN | −0.14 | +1.86 | −0.28 | 0.42 mW |
+
+- **El scattering es lo que imprime:** empuja la NP hacia el vidrio con
+  ~1.9 pN a 1 mW. El spin-curl le resta ~15 %.
+- **El vidrio reduce el empuje en el contacto ~10 %.** La reflexión en el
+  vidrio (≈ 0.5 % en intensidad) forma una onda estacionaria. Justo en el
+  contacto, su gradiente apunta hacia arriba (−0.14 pN).
+- **Con 0.42 mW alcanza para imprimir** (0.6 pN en el contacto).
+- **En el plano de contacto la fuerza lateral apunta al eje** y casi no
+  cambia con el vidrio (~3 %): la NP se imprime centrada en el foco.
 
 ## Calibración foco → BFP (`calibracion_foco.py`)
 
@@ -160,9 +209,9 @@ Métricas de ancho: `'fwhm'` y `'r_1e2'` (gauss), `'r_anillo'` y
 
 ## Pendientes
 
-- La posición del máximo de la polarizabilidad de Kuwata cambia poco con el
-  radio de la NP. Puede ser el límite del modelo; `particula.comparar_radios()`
-  lo compara con Mie exacto.
+- Las fuerzas usan la aproximación dipolar (α de Mie con a1). Para ir más
+  allá (multipolos en un haz enfocado) hace falta Mie generalizada
+  (GLMT / matriz T); con a = 50 nm la diferencia esperada es de 1–4 %.
 - Agregar la interfaz al haz dona (necesita la máscara de vórtice en
   `interfaz.py`) y simular el printing con los dos haces y el vidrio. Eso
   además da las derivadas exactas fuera del plano para la dona; con

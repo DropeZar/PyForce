@@ -19,9 +19,8 @@ fuera del plano exactas (interfaz.py).
 Salida en resultados/gauss_interfaz/:
     fuerzas_xz.png    mapas XZ sin y con vidrio
     fuerzas_xy.png    plano de contacto (z = -a) sin/con vidrio y diferencia
-    perfiles.png      Fz sobre el eje al acercarse al vidrio, Fx en el plano
-                      de contacto y sus componentes
-    resumen.md        fuerza de impresion y guiado lateral en el contacto
+    resumen.md        fuerza hacia el vidrio en el contacto (por componente) y
+                      potencia necesaria para llegar a F_IMPRESION_pN
 
 Uso:  python fuerzas_gauss_interfaz.py
 """
@@ -35,7 +34,8 @@ from fuerzas import calcular_factor_E_foco, fuerzas_xy, fuerzas_xz
 from interfaz import FocoConInterfaz, ejes_xy, ejes_xz
 from particula import calc_alpha
 from sim_config import (x_steps, z_steps, x_range, z_range, eps_m, n_vidrio,
-                        radio_particula, dx_fuerzas, dy_fuerzas, dz_fuerzas)
+                        radio_particula, dx_fuerzas, dy_fuerzas, dz_fuerzas,
+                        F_IMPRESION_pN)
 
 Z_VIDRIO = 0.0   # posicion de la superficie del vidrio respecto del foco (nm)
 Z_XZ = (-1100, 100)  # ventana en z de los mapas XZ (nm): la zona de agua por donde llega la NP
@@ -83,35 +83,13 @@ def mapas(z_int):
     return dict(x_xy=x_xy, xy=[F * pN for F in xy], x_xz=x_xz, z_xz=z_xz, xz=xz)
 
 
-def perfil_eje(z_int, z):
-    """Fz (pN) y sus componentes (grad, scat, spin-curl) sobre el eje x = y = 0."""
+def fuerza_en_contacto(z_int):
+    """Fz (pN) y sus componentes (grad, scat, spin-curl) en el contacto, sobre el eje."""
     x = np.array([-1.0, 0.0, 1.0]) * x_steps
+    z = z_contacto + np.array([-1.0, 0.0, 1.0]) * z_steps
     E = _foco(z_int).plano_xz(x, z)
     r = fuerzas_xz(*_SI(E), dx_fuerzas, dz_fuerzas, alpha_p, alpha_pp, eps_m)
-    return {k: r[i][:, 1] * pN for k, i in (('total', 1), ('grad', 3), ('scat', 5), ('sc', 7))}
-
-
-def en_el_centro(m, i):
-    """Valor de la componente i de las fuerzas XY en el eje (x = y = 0)."""
-    x = m['x_xy']
-    return m['xy'][i][np.argmin(np.abs(x)), np.argmin(np.abs(x))]
-
-
-def guiado_lateral(m):
-    """
-    En el plano de contacto, sobre y = 0: pendiente -dFx/dx en el eje
-    (pN/um), fuerza lateral maxima hacia el eje (pN) y radio de guiado
-    (primer cero de Fx para x > 0: dentro de ese radio la NP es llevada al eje).
-    """
-    x = m['x_xy']
-    fila = m['xy'][0][np.argmin(np.abs(x))]
-    i0 = np.argmin(np.abs(x))
-    pendiente = -(fila[i0 + 1] - fila[i0 - 1]) / (x[i0 + 1] - x[i0 - 1]) * 1e3
-    der = slice(i0 + 1, None)
-    xs, fs = x[der], fila[der]
-    cero = np.where(fs > 0)[0]
-    radio = xs[cero[0]] if len(cero) else np.nan
-    return pendiente, -fs.min(), radio
+    return {k: r[i][1, 1] * pN for k, i in (('total', 1), ('grad', 3), ('scat', 5), ('sc', 7))}
 
 
 # ---------------------------------------------------------------------------
@@ -179,49 +157,6 @@ def graficar_xy(m, archivo):
     plt.close(fig)
 
 
-def graficar_perfiles(z, eje, m, archivo):
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 4.5))
-    estilos = {'sin vidrio': dict(color='k', ls='--'), 'con vidrio': dict(color='tab:blue')}
-    for nombre, p in eje.items():
-        ax1.plot(z, p['total'], label=nombre, **estilos[nombre])
-    for comp, col, lab in (('grad', 'tab:green', 'gradiente'), ('scat', 'tab:red', 'scattering'),
-                           ('sc', 'tab:purple', 'spin-curl')):
-        ax1.plot(z, eje['con vidrio'][comp], color=col, lw=0.9, alpha=0.8,
-                 label=f'{lab} (con vidrio)')
-    ax1.axvline(z_contacto, color='tab:red', ls=':', lw=0.8)
-    ax1.axhline(0, color='gray', lw=0.5)
-    ax1.set_xlabel('z del centro de la NP (nm)   (vidrio en 0)')
-    ax1.set_ylabel('Fz (pN)   (+ = hacia el vidrio)')
-    ax1.set_title('Fuerza axial sobre el eje')
-
-    for nombre, mm in m.items():
-        x = mm['x_xy']
-        fila = mm['xy'][0][np.argmin(np.abs(x))]
-        ax2.plot(x, fila, label=nombre, **estilos[nombre])
-    ax2.set_xlabel('x (nm)')
-    ax2.set_ylabel('Fx (pN)')
-    ax2.set_title(f'Fuerza lateral en el plano de contacto (y = 0)')
-
-    con = m['con vidrio']
-    x = con['x_xy']
-    i0 = np.argmin(np.abs(x))
-    for i, col, lab in ((0, 'tab:blue', 'total'), (2, 'tab:green', 'gradiente'),
-                        (4, 'tab:red', 'scattering'), (6, 'tab:purple', 'spin-curl')):
-        ax3.plot(x, con['xy'][i][i0], color=col, label=lab)
-    ax3.set_xlabel('x (nm)')
-    ax3.set_ylabel('Fx (pN)')
-    ax3.set_title('Componentes de Fx en el contacto (con vidrio)')
-    for ax in (ax2, ax3):
-        ax.set_xlim(-600, 600)
-        ax.axhline(0, color='gray', lw=0.5)
-    for ax in (ax1, ax2, ax3):
-        ax.grid(alpha=0.3)
-        ax.legend(fontsize=8)
-    fig.tight_layout()
-    fig.savefig(archivo, dpi=200, bbox_inches='tight')
-    plt.close(fig)
-
-
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
     os.makedirs(CARPETA, exist_ok=True)
@@ -232,9 +167,7 @@ if __name__ == '__main__':
     graficar_xz(m, os.path.join(CARPETA, 'fuerzas_xz.png'))
     graficar_xy(m, os.path.join(CARPETA, 'fuerzas_xy.png'))
 
-    z = np.arange(-1500, z_contacto + 0.1, 2.0)
-    eje = {nombre: perfil_eje(z_int, z) for nombre, z_int in CASOS.items()}
-    graficar_perfiles(z, eje, m, os.path.join(CARPETA, 'perfiles.png'))
+    contacto = {nombre: fuerza_en_contacto(z_int) for nombre, z_int in CASOS.items()}
 
     # resumen
     lineas = [
@@ -243,7 +176,7 @@ if __name__ == '__main__':
         f'polarización lineal en x, w0 = {gauss.w0:.3f} mm, I0 = {gauss.I0:.3f} mW/cm² '
         f'(calibrado: FWHM = 330 nm, P = 1 mW en la muestra).',
         f'- Partícula: Au, a = {a_nm:.0f} nm, en agua; α\' = {alpha_p:.3e} m³, '
-        f'α\'\' = {alpha_pp:.3e} m³ (Kuwata).',
+        f'α\'\' = {alpha_pp:.3e} m³ (Mie, dipolo a1).',
         f'- Vidrio: n = {n_vidrio}, semi-infinito, con la superficie en el foco (z = 0). '
         f'Contacto: centro de la NP en z = −a = {z_contacto:.0f} nm.',
         '- Fuerza total = gradiente + scattering + spin-curl.', '',
@@ -251,20 +184,17 @@ if __name__ == '__main__':
         '| caso | Fz total (pN) | gradiente | scattering | spin-curl |',
         '|---|---|---|---|---|',
     ]
-    i_c = np.argmin(np.abs(z - z_contacto))
-    for nombre, p in eje.items():
-        lineas.append(f"| {nombre} | {p['total'][i_c]:.3f} | {p['grad'][i_c]:.3f} | "
-                      f"{p['scat'][i_c]:.3f} | {p['sc'][i_c]:.3f} |")
-    lineas += ['', '## Guiado lateral en el plano de contacto (y = 0)', '',
-               '| caso | −dFx/dx en el eje (pN/µm) | Fx máxima hacia el eje (pN) | '
-               'radio de guiado (nm) |', '|---|---|---|---|']
-    for nombre, mm in m.items():
-        k, fmax, radio = guiado_lateral(mm)
-        lineas.append(f'| {nombre} | {k:.2f} | {fmax:.3f} | {radio:.0f} |')
-    lineas += ['', 'Todo a P = 1 mW en la muestra (las fuerzas escalan linealmente con P). '
-               'Fz > 0 empuja la NP hacia el vidrio. Radio de guiado: distancia al eje '
-               'dentro de la cual la fuerza lateral lleva la NP hacia el eje (primer cero '
-               'de Fx).', '']
+    for nombre, p in contacto.items():
+        lineas.append(f"| {nombre} | {p['total']:.3f} | {p['grad']:.3f} | "
+                      f"{p['scat']:.3f} | {p['sc']:.3f} |")
+    lineas += ['', f'## Potencia para imprimir (Fz en el contacto = {F_IMPRESION_pN} pN)', '',
+               '| caso | Fz en el contacto a 1 mW (pN) | potencia necesaria (mW) |',
+               '|---|---|---|']
+    for nombre, p in contacto.items():
+        f1 = p['total']
+        lineas.append(f'| {nombre} | {f1:.3f} | {F_IMPRESION_pN / f1:.2f} |')
+    lineas += ['', 'Fuerzas a P = 1 mW en la muestra (escalan linealmente con P). '
+               'Fz > 0 empuja la NP hacia el vidrio.', '']
     with open(os.path.join(CARPETA, 'resumen.md'), 'w', encoding='utf-8', newline='\n') as fh:
         fh.write('\n'.join(lineas))
     print('\n'.join(lineas))
