@@ -2,10 +2,11 @@
 """
 dona.py
 
-Haz dona / vortice (Laguerre-Gaussiano, contrapropagante, con mascara
-de fase). Los parametros propios de este haz (NA, h, w0, wavelength,
-polarizacion) se definen aca. Los parametros compartidos con el resto
-de la simulacion (I0, resolucion, rango) vienen de config.py.
+Haz dona / vortice (gaussiano con mascara de fase vortice, sim.VP de
+PyFocus), contrapropagante al gaussiano. Los parametros propios de este haz (NA, h, w0, wavelength,
+polarizacion) se definen aca. La grilla de PyFocus (resolucion y rango) es
+compartida con el otro haz y viene de sim_config.py. w0 e I0 se pisan con
+los de calibracion.json si existe (ver calibracion_foco.py).
 """
 from PyFocus import sim
 
@@ -14,7 +15,7 @@ from pyfocus_wrapper import campo_foco
 
 # --- Parametros propios de este haz ---
 NA = 1.3              # apertura numerica
-n = 1.51822           # indice de refraccion del medio: agua= 1.33 , aire= 1.00, aceite=1.53
+n = 1.51822           # indice del medio del foco (aceite de inmersion). Agua=1.33, aire=1.00
 h = 2.6               # radio de apertura del objetivo (mm)
 w0 = 5                # radio del haz gaussiano de entrada (mm)
 wavelength = 532      # longitud de onda (nm)

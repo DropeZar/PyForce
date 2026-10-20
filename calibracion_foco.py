@@ -4,7 +4,7 @@ calibracion_foco.py
 Pasa de "lo que mido EN EL FOCO" a "los w0 e I0 que hay que ponerle a PyFocus
 en el back focal plane (BFP)", y viceversa.
 
-Idea (la tuya, con un atajo)
+Idea
 ----------------------------
 Barrer en 2D (w0, I0) no hace falta, porque PyFocus es lineal en el campo:
     - la FORMA del foco (ancho del spot, radio del anillo) depende solo de w0

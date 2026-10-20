@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-graficar_resumen.py
+grafico_lindo.py
 
 Carga campos guardados (.npz) de un haz gauss y un haz dona, recalcula
 las fuerzas opticas con fuerzas.py y arma una figura resumen 3x3:
@@ -8,12 +8,13 @@ las fuerzas opticas con fuerzas.py y arma una figura resumen 3x3:
   fila 2 -> mapas XZ (idem)
   fila 3 -> corte de Fz en z=0 a lo largo de x, con FWHM marcado
 
-Convencion de signo para MOSTRAR (streamplot y cortes, fila 2 y 3):
-  el haz contrapropagante hace que Fz de gauss y Fz de dona tengan
-  sentidos fisicos opuestos. Se muestra gauss con -Fz y dona con +Fz
-  (dona sin negar), consistente con el main.py original del proyecto.
-  Esto es solo para visualizacion -- el calculo de fuerza en si
-  (fuerzas.py) no cambia de signo en ningun lado.
+Convencion de signo para MOSTRAR:
+  fila 2 -> eje z invertido (+z hacia abajo) y Fz sin negar, asi que
+            las flechas son las fisicas.
+  fila 3 -> se grafica -Fz, para que un valor positivo en el corte sea
+            una flecha hacia ARRIBA en el mapa de la fila 2.
+  Es solo visualizacion: el calculo de fuerza (fuerzas.py) no cambia de
+  signo en ningun lado.
 """
 import numpy as np
 import matplotlib.pyplot as plt

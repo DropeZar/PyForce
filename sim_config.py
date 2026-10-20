@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-config.py
+sim_config.py
 
 Parametros compartidos de la simulacion: geometria de la particula,
 indices de refraccion, constantes fisicas y parametros comunes de
@@ -8,8 +8,8 @@ grilla/resolucion de PyFocus. El I0 (intensidad) es propio de cada haz
 y se define en beams/gauss.py y beams/dona.py, no aca.
 
 Este es el UNICO lugar donde se deben modificar estos valores.
-gauss.py, dona.py, particula.py, fuerzas.py y main.py importan de aca
-en vez de tener cada uno su propia copia.
+beams/gauss.py, beams/dona.py, particula.py, fuerzas.py y main.py importan
+de aca en vez de tener cada uno su propia copia.
 """
 import json
 import os

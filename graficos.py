@@ -2,12 +2,12 @@
 """
 graficos.py
 
-Graficos de los mapas de fuerza optica (magnitud + streamplot).
-Se dejo solo lo esencial para visualizar las fuerzas -- los analisis
-de ancho de campana (FWHM), conversion irradiancia->potencia y ajustes
-de curvas que estaban en el main original se sacaron (eran
-exploratorios / tenian formulas duplicadas e inconsistentes entre si;
-si los necesitas, estan en el main_fuerza.py viejo como referencia).
+Graficos de los mapas de fuerza optica (magnitud + streamplot) y de
+intensidad en el foco.
+
+Todas las funciones reciben `rango`: el ancho total del plano en nm, o
+(ancho_x, ancho_y) si los ejes miden distinto (usar sim_config.rango_xy /
+sim_config.rango_xz).
 """
 import numpy as np
 import matplotlib.pyplot as plt

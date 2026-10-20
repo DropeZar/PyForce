@@ -82,7 +82,16 @@ def espejar_haz_contrapropagante(Fx, Fz):
 
 
 def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m):
-    """Fuerza optica (gradiente + scattering + spin-curl) en el plano XY."""
+    """
+    Fuerza optica (gradiente + scattering + spin-curl) en el plano XY.
+
+    Campos en V/m, pasos en m, alpha en m^3. Como solo se tiene un plano,
+    las derivadas en z se toman como cero (aproximacion: ignora la fase
+    axial del haz en el termino de spin-curl). dz no se usa; queda en la
+    firma por simetria con fuerzas_xz.
+
+    Devuelve (Fx, Fy, Fg_x, Fg_y, Fs_x, Fs_y, Fsc_x, Fsc_y), en N.
+    """
     I = np.abs(ex) ** 2 + np.abs(ey) ** 2 + np.abs(ez) ** 2
 
     # ---- GRADIENTE ----
@@ -130,6 +139,17 @@ def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m):
 
 
 def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m):
+    """
+    Fuerza optica (gradiente + scattering + spin-curl) en el plano XZ.
+    Las derivadas en y se toman como cero.
+
+    NOTA: a diferencia de fuerzas_xy, el total (Fx, Fz) NO incluye el
+    termino de spin-curl -- se excluyo a proposito en el main original y
+    quedo asi. Fsc_x / Fsc_z se devuelven igual por separado para poder
+    graficarlos o sumarlos a mano.
+
+    Devuelve (Fx, Fz, Fg_x, Fg_z, Fs_x, Fs_z, Fsc_x, Fsc_z), en N.
+    """
     
     I = np.abs(ex) ** 2 + np.abs(ey) ** 2 + np.abs(ez) ** 2
 
@@ -170,7 +190,7 @@ def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m):
     Fsc_z4 = -(ex * np.conj(dEz_dx) + ey * np.conj(dEz_dy) + ez * np.conj(dEz_dz))
     Fsc_z = np.real(prefactor * epsilon_0 * eps_m * alpha_pp * (Fsc_z1 + Fsc_z2 + Fsc_z3 + Fsc_z4))
 
-    # ---- TOTAL (sin Fsc, ver nota en el docstring) ----
+    # ---- TOTAL (sin Fsc, ver NOTA en el docstring) ----
     Fx = Fg_x + Fs_x
     Fz = Fg_z + Fs_z
 

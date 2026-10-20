@@ -4,9 +4,10 @@ gauss.py
 
 Haz gaussiano (contrapropagante, sin mascara de fase).
 Los parametros propios de este haz (NA, h, w0, wavelength, polarizacion)
-se definen aca. Los parametros compartidos con el resto de la
-simulacion (I0, resolucion, rango) vienen de config.py -- si hay que
-cambiarlos, se cambian ahi, no aca.
+se definen aca. La grilla de PyFocus (resolucion y rango) es
+compartida con el otro haz y viene de sim_config.py -- si hay que
+cambiarla, se cambia ahi, no aca. w0 e I0 se pisan con los de
+calibracion.json si existe (ver calibracion_foco.py).
 """
 from PyFocus import sim
 
@@ -15,11 +16,11 @@ from pyfocus_wrapper import campo_foco
 
 # --- Parametros propios de este haz ---
 NA = 1              # apertura numerica
-n = 1.35             # indice de refraccion del medio
+n = 1.35             # indice de refraccion del medio del foco (inmersion del objetivo)
 h = 3             # radio de apertura del objetivo (mm)
 w0 = 4          # radio del haz gaussiano (mm)
 wavelength = 592     # longitud de onda (nm)
-gamma = 0            # polarizacion: 45 + beta=90 = circular derecha
+gamma = 0            # polarizacion: gamma=0, beta=0 -> lineal en x (gamma=45, beta=90 -> circular)
 beta = 0
 z = 0                # plano focal (z=0)
 I0 = 20              # intensidad inicial de este haz (mW/cm^2)

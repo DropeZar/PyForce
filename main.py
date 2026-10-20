@@ -5,12 +5,15 @@ main.py
 La simulacion completa:
   1. Calcula los campos de cada haz (gauss.py, dona.py)
   2. Calcula la polarizabilidad de Kuwata para cada longitud de onda (particula.py)
-  3. Convierte los campos simulados a unidades SI (fuerzas.calcular_factor_E)
+  3. Convierte los campos simulados a unidades SI (fuerzas.calcular_factor_E_foco)
   4. Calcula las fuerzas opticas XY y XZ (fuerzas.py)
   5. Grafica los mapas de fuerza esenciales (graficos.py)
 
-Los parametros compartidos (radio de particula, medios, resolucion,
-I0, etc.) se definen todos en config.py.
+Los parametros compartidos (radio de particula, medios, resolucion) se
+definen en sim_config.py; los de cada haz, en beams/gauss.py y beams/dona.py.
+
+Esta pensado para correrse celda por celda (#%%) en Spyder/VS Code, o
+entero con `python main.py`.
 """
 
 import numpy as np

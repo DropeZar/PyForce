@@ -5,20 +5,21 @@ particula.py
 Polarizabilidad de una nanoesfera metalica, con la permitividad del oro
 interpolada de la tabla completa de Johnson & Christy (1972).
 
-calc_alpha es ahora la polarizabilidad dipolar EXACTA (teoria de Mie
-completa), extraida del coeficiente a1 (formulas de Bohren & Huffman,
-recurrencia descendente de la derivada logaritmica D_n(mx) para soportar
-indice complejo del oro). Es un reemplazo directo (misma firma, mismas
-unidades m^3) de la version anterior basada en Kuwata: el resto del
-codigo (main_fuerza.py, fuerzas.py, etc.) que hace
-`from particula import calc_alpha` no necesita cambios.
+Hay dos versiones, con la misma firma y las mismas unidades (m^3):
 
-La aproximacion de Kuwata se mantiene como calc_alpha_kuwata, solo para
-referencia/comparacion (graficar_comparacion, comparar_radios).
+- calc_alpha: aproximacion de Kuwata. Es la que usan main.py y
+  grafico_lindo.py.
+- calc_alpha_mie: polarizabilidad dipolar EXACTA (teoria de Mie), sacada
+  del coeficiente a1 (Bohren & Huffman, con recurrencia descendente de la
+  derivada logaritmica D_n(mx) para que sea estable con el indice complejo
+  del oro). Sirve para validar Kuwata (graficar_comparacion,
+  comparar_radios); para usarla en la simulacion alcanza con cambiar el
+  import en main.py.
 
 Uso tipico:
     from particula import calc_alpha
-    alpha_p, alpha_pp = calc_alpha(592)
+    alpha_p, alpha_pp = calc_alpha(592)          # radio y medio de sim_config.py
+    alpha_p, alpha_pp = calc_alpha(532, a=50e-9) # otro radio
 """
 import numpy as np
 
@@ -72,9 +73,9 @@ def calc_alpha(wavelength_nm, a=radio_particula, eps_m_local=eps_m):
     wavelength_nm : float o array
         Longitud de onda en nm.
     a : float
-        Radio de la particula en metros. Por defecto, config.radio_particula.
+        Radio de la particula en metros. Por defecto, sim_config.radio_particula.
     eps_m_local : float
-        Permitividad del medio. Por defecto, config.eps_m.
+        Permitividad del medio. Por defecto, sim_config.eps_m.
 
     Retorna (Re(alpha), Im(alpha)) en m^3.
     """
@@ -195,7 +196,7 @@ def graficar_comparacion(lam_min=400, lam_max=900, n_puntos=400, a=radio_particu
                           eps_m_local=eps_m, longitudes_marcadas=(592, 1064)):
     """
     Compara Kuwata vs Mie exacto: Re(alpha), Im(alpha) y |alpha| superpuestos,
-    dos radios distintos opcionalmente, en el mismo grafico.
+    para un radio, en tres paneles.
     """
     import matplotlib.pyplot as plt
 
