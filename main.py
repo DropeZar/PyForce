@@ -4,7 +4,7 @@ main.py
 
 La simulacion completa:
   1. Calcula los campos de cada haz (gauss.py, dona.py)
-  2. Calcula la polarizabilidad de Kuwata para cada longitud de onda (particula.py)
+  2. Calcula la polarizabilidad (Mie, dipolo a1) para cada longitud de onda (particula.py)
   3. Convierte los campos simulados a unidades SI (fuerzas.calcular_factor_E_foco)
   4. Calcula las fuerzas opticas XY y XZ (fuerzas.py)
   5. Grafica los mapas de fuerza esenciales (graficos.py)
@@ -36,7 +36,7 @@ Ex_g_xz, Ey_g_xz, Ez_g_xz = fields_g["XZ"]
 Ex_d_xz, Ey_d_xz, Ez_d_xz = fields_d["XZ"]
 
 # ============================================================
-# 2) Polarizabilidad (Kuwata) a la longitud de onda de cada haz
+# 2) Polarizabilidad (Mie, dipolo a1) a la longitud de onda de cada haz
 # ============================================================
 alpha_p_g, alpha_pp_g = calc_alpha(gauss.wavelength)
 alpha_p_d, alpha_pp_d = calc_alpha(dona.wavelength)
