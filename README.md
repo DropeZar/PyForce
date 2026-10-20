@@ -165,8 +165,7 @@ cuenta una interfaz (`sim.no_mask`/`sim.VP` la ignoran), a través de
 `pyfocus_wrapper.campo_foco_vidrio`. Esa función corrige que `sim.custom` da
 los campos ~1 % más chicos (pesa mal los extremos de la integral) y los pasa a
 la misma convención que el resto. Sin vidrio coincide con `sim.no_mask` a
-5e-4. Solo vale con la interfaz en el foco: en otra posición `sim.custom` da
-mal la onda reflejada y la transmitida.
+5e-4. 
 
 **Convención de PyFocus.** `sim.no_mask`/`sim.VP` devuelven Ez con el signo
 opuesto al físico (con su Ez, div E ≠ 0) y el plano XY con las filas de +y a −y.
