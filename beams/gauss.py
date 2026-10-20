@@ -16,7 +16,7 @@ from pyfocus_wrapper import campo_foco
 
 # --- Parametros propios de este haz ---
 NA = 1              # apertura numerica
-n = 1.35             # indice de refraccion del medio del foco (inmersion del objetivo)
+n = 1.33             # indice del medio del foco: agua (objetivo de inmersion en agua)
 h = 3             # radio de apertura del objetivo (mm)
 w0 = 4          # radio del haz gaussiano (mm)
 wavelength = 592     # longitud de onda (nm)
