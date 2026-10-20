@@ -260,6 +260,6 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
 if __name__ == '__main__':
     graficar_resumen('campos_gauss_agua.npz', 'campos_dona_aceite.npz',
                       rango_grafico=1200,  # << debe coincidir con sim_config.x_range de la corrida
-                      titulo_general='Trampa óptica contrapropagante',
+                      titulo_general='Haces contrapropagantes gauss + dona',
                       zoom=400,
                       ventana_fwhm_resultante=(-60, 60))  # << ajustar mirando el corte del resultante
