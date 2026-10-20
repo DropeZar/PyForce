@@ -193,10 +193,10 @@ class FocoConInterfaz:
                 out[sl] = e[:, 0]
         return tuple(e.reshape(X.shape) for e in salida)
 
-    def plano_xz(self, x, z):
-        """Plano XZ (y = 0; filas -z -> +z, columnas -x -> +x)."""
-        rho = np.abs(x)
-        phi = np.where(x < 0, np.pi, 0.0)
+    def plano_xz(self, x, z, y=0.0):
+        """Plano XZ a la altura y (filas -z -> +z, columnas -x -> +x)."""
+        x = np.asarray(x, float)
+        rho, phi = np.hypot(x, y), np.arctan2(y, x)
         z = np.asarray(z, float)
         if self.z_int is None or self.n2 == self.n1:
             E = self._campo(rho, phi, z, ('inc',))
@@ -206,14 +206,26 @@ class FocoConInterfaz:
         E2 = self._campo(rho, phi, z, ('tr',))
         return tuple(np.where(abajo[None, :], a, b).T for a, b in zip(E1, E2))
 
+    def derivada_xy_z(self, x, z=0.0, h=0.5):
+        """(dEx/dz, dEy/dz, dEz/dz) en el plano XY a la altura z (por nm)."""
+        Ea, Eb = self.plano_xy(x, z + h), self.plano_xy(x, z - h)
+        return tuple((a - b) / (2 * h) for a, b in zip(Ea, Eb))
+
+    def derivada_xz_y(self, x, z, h=0.5):
+        """(dEx/dy, dEy/dy, dEz/dy) en el plano XZ (y = 0) (por nm)."""
+        Ea, Eb = self.plano_xz(x, z, h), self.plano_xz(x, z, -h)
+        return tuple((a - b) / (2 * h) for a, b in zip(Ea, Eb))
+
 
 def campo_gauss(haz, x_steps, z_steps, x_range, z_range, n2=None, z_int=None,
                 z_plano=0.0, n_theta=400):
     """
     Campo del modulo de haz `haz` (beams.gauss) con o sin interfaz, en las
     mismas grillas que pyfocus_wrapper.campo_foco. Devuelve
-    {"XY": (Ex, Ey, Ez), "XZ": (Ex, Ey, Ez), "x_xy", "x_xz", "z_xz"}
-    en unidades de PyFocus.
+    {"XY": (Ex, Ey, Ez), "XZ": (Ex, Ey, Ez), "x_xy", "x_xz", "z_xz",
+     "dXY_dz": derivadas en z del plano XY, "dXZ_dy": derivadas en y del XZ}
+    en unidades de PyFocus (las derivadas, por nm). Las derivadas son las que
+    necesita el spin-curl en fuerzas.fuerzas_xy / fuerzas_xz.
     """
     foco = FocoConInterfaz(haz.NA, haz.n, haz.h, haz.w0, haz.wavelength,
                            haz.gamma, haz.beta, haz.I0, n2=n2, z_int=z_int,
@@ -221,4 +233,6 @@ def campo_gauss(haz, x_steps, z_steps, x_range, z_range, n2=None, z_int=None,
     x_xy = ejes_xy(x_steps, x_range)
     x_xz, z_xz = ejes_xz(x_steps, z_steps, x_range, z_range)
     return {"XY": foco.plano_xy(x_xy, z_plano), "XZ": foco.plano_xz(x_xz, z_xz),
-            "x_xy": x_xy, "x_xz": x_xz, "z_xz": z_xz}
+            "x_xy": x_xy, "x_xz": x_xz, "z_xz": z_xz,
+            "dXY_dz": foco.derivada_xy_z(x_xy, z_plano),
+            "dXZ_dy": foco.derivada_xz_y(x_xz, z_xz)}

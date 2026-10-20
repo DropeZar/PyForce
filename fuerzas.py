@@ -39,14 +39,20 @@ def espejar_haz_contrapropagante(Fx, Fz):
     return Fx[::-1, :], -Fz[::-1, :]
 
 
-def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m):
+def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m, dE_dz=None):
     """
     Fuerza optica (gradiente + scattering + spin-curl) en el plano XY.
 
-    Campos en V/m, pasos en m, alpha en m^3. Como solo se tiene un plano,
-    las derivadas en z se toman como cero (aproximacion: ignora la fase
-    axial del haz en el termino de spin-curl). dz no se usa; queda en la
-    firma por simetria con fuerzas_xz.
+    Campos en V/m, pasos en m, alpha en m^3. Las filas tienen que ir de -y a
+    +y (como devuelven pyfocus_wrapper.campo_foco e interfaz.py).
+
+    El spin-curl necesita derivadas en z, que un solo plano no tiene:
+    - dE_dz = (dEx/dz, dEy/dz, dEz/dz) en V/m^2, si se las tiene (p. ej.
+      de planos en z +- dz). Es lo exacto.
+    - Si dE_dz es None: dEz/dz sale de div E = 0 (exacto en un medio
+      homogeneo, asi los terminos con div E se anulan como deben) y
+      dEx/dz = dEy/dz = 0 (aproximacion: falta el aporte de Ez* dEx/dz).
+    dz no se usa; queda en la firma por compatibilidad.
 
     Devuelve (Fx, Fy, Fg_x, Fg_y, Fs_x, Fs_y, Fsc_x, Fsc_y), en N.
     """
@@ -66,9 +72,12 @@ def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m):
     dEy_dy = np.gradient(ey, dy, axis=0)
     dEz_dy = np.gradient(ez, dy, axis=0)
 
-    dEx_dz = np.zeros_like(ex)
-    dEy_dz = np.zeros_like(ey)
-    dEz_dz = np.zeros_like(ez)
+    if dE_dz is None:
+        dEx_dz = np.zeros_like(ex)
+        dEy_dz = np.zeros_like(ey)
+        dEz_dz = -(dEx_dx + dEy_dy)  # div E = 0
+    else:
+        dEx_dz, dEy_dz, dEz_dz = dE_dz
 
     Sx = np.imag(np.conj(ex) * dEx_dx + np.conj(ey) * dEy_dx + np.conj(ez) * dEz_dx)
     Sy = np.imag(np.conj(ex) * dEx_dy + np.conj(ey) * dEy_dy + np.conj(ez) * dEz_dy)
@@ -96,15 +105,18 @@ def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m):
     return Fx, Fy, Fg_x, Fg_y, Fs_x, Fs_y, Fsc_x, Fsc_y
 
 
-def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m):
+def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m, dE_dy=None):
     """
-    Fuerza optica (gradiente + scattering + spin-curl) en el plano XZ.
-    Las derivadas en y se toman como cero.
+    Fuerza optica (gradiente + scattering + spin-curl) en el plano XZ
+    (y = 0). Filas de -z a +z, columnas de -x a +x.
 
-    NOTA: a diferencia de fuerzas_xy, el total (Fx, Fz) NO incluye el
-    termino de spin-curl -- se excluyo a proposito en el main original y
-    quedo asi. Fsc_x / Fsc_z se devuelven igual por separado para poder
-    graficarlos o sumarlos a mano.
+    El spin-curl necesita derivadas en y, que un solo plano no tiene:
+    - dE_dy = (dEx/dy, dEy/dy, dEz/dy) en V/m^2, si se las tiene (p. ej.
+      de planos en y = +-dy). Es lo exacto.
+    - Si dE_dy es None: dEy/dy sale de div E = 0 (exacto en un medio
+      homogeneo) y dEx/dy = dEz/dy = 0. Para un haz polarizado en x
+      (Ey = 0 en y = 0) esto es exacto; en general falta el aporte de
+      Ey* dE/dy.
 
     Devuelve (Fx, Fz, Fg_x, Fg_z, Fs_x, Fs_z, Fsc_x, Fsc_z), en N.
     """
@@ -125,9 +137,12 @@ def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m):
     dEy_dz = np.gradient(ey, dz, axis=0)
     dEz_dz = np.gradient(ez, dz, axis=0)
 
-    dEx_dy = np.zeros_like(ex)
-    dEy_dy = np.zeros_like(ey)
-    dEz_dy = np.zeros_like(ez)
+    if dE_dy is None:
+        dEx_dy = np.zeros_like(ex)
+        dEz_dy = np.zeros_like(ez)
+        dEy_dy = -(dEx_dx + dEz_dz)  # div E = 0
+    else:
+        dEx_dy, dEy_dy, dEz_dy = dE_dy
 
     Sx = np.imag(np.conj(ex) * dEx_dx + np.conj(ey) * dEy_dx + np.conj(ez) * dEz_dx)
     Sz = np.imag(np.conj(ex) * dEx_dz + np.conj(ey) * dEy_dz + np.conj(ez) * dEz_dz)
@@ -148,8 +163,8 @@ def fuerzas_xz(ex, ey, ez, dx, dz, alpha_p, alpha_pp, eps_m):
     Fsc_z4 = -(ex * np.conj(dEz_dx) + ey * np.conj(dEz_dy) + ez * np.conj(dEz_dz))
     Fsc_z = np.real(prefactor * epsilon_0 * eps_m * alpha_pp * (Fsc_z1 + Fsc_z2 + Fsc_z3 + Fsc_z4))
 
-    # ---- TOTAL (sin Fsc, ver NOTA en el docstring) ----
-    Fx = Fg_x + Fs_x
-    Fz = Fg_z + Fs_z
+    # ---- TOTAL ----
+    Fx = Fg_x + Fs_x + Fsc_x
+    Fz = Fg_z + Fs_z + Fsc_z
 
     return Fx, Fz, Fg_x, Fg_z, Fs_x, Fs_z, Fsc_x, Fsc_z
