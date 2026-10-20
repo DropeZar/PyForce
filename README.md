@@ -92,6 +92,15 @@ tres términos (`fuerzas.py` los calcula por separado y los suma):
    intensa; con α′ < 0, hacia donde es menos intensa. A 532 nm, α′ < 0 para
    esta NP: el gradiente de la dona la empuja hacia el centro oscuro del
    anillo, no hacia el anillo.
+
+   Eso es correcto. Como en cualquier oscilador, α′ cambia de signo al
+   cruzar la resonancia: es positiva del lado rojo y negativa del lado azul.
+   La resonancia dipolar de una NP de oro de 100 nm en agua está en 573 nm
+   (máximo de α″; el pico de extinción con Mie completo da 569 nm), y
+   α′ < 0 entre 479 y 548 nm. Para NPs chicas la resonancia está cerca de
+   520 nm y a 532 nm α′ > 0. El cambio de signo a 532 nm ocurre en un
+   diámetro de ≈ 83 nm. Cerca de ese tamaño |α′| es chica y el gradiente pesa
+   poco frente al scattering.
 2. **Scattering (presión de radiación)** — `F_scat = (ε₀ εm α″ / 2) Im[E* × (∇ × E)]`.
    Sigue el flujo de energía (vector de Poynting), o sea, empuja en el
    sentido en que viaja la luz. Para el oro es la fuerza dominante: es la que
@@ -187,6 +196,29 @@ Fuerza hacia el vidrio en el punto de contacto, sobre el eje, a 1 mW:
 - **En el plano de contacto la fuerza lateral apunta al eje** y casi no
   cambia con el vidrio (~3 %): la NP se imprime centrada en el foco.
 
+### Haces contrapropagantes gauss + dona, sin vidrio (`resultados/haces_contrapropagantes/`)
+
+Figura de `grafico_lindo.py` (a partir de los campos que guarda `main.py`). NP
+de oro de 100 nm en agua, sin vidrio. Gauss calibrado a 1 mW (592 nm, baja
+desde arriba). La dona (532 nm, polarización circular, sube desde abajo) **no
+está calibrada**: se usan w0 = 5 mm e I0 = 6.1 mW/cm², que dan 1 mW en la
+muestra.
+
+![Haces contrapropagantes](resultados/haces_contrapropagantes/resumen.png)
+
+- **Fila 1, plano focal (XY):** el gauss lleva la NP hacia el eje. La dona
+  (vórtice con polarización circular) lleva momento angular, y su fuerza
+  tiene una componente azimutal que hace girar la NP alrededor del eje.
+- **Fila 2, plano XZ (+z hacia abajo):** el gauss empuja hacia abajo en el
+  eje; la dona empuja hacia arriba en su anillo.
+- **Fila 3, −Fz en z = 0 (negativo = hacia abajo):** al sumar los dos haces,
+  la dona cancela el empuje del gauss lejos del eje. La zona que empuja
+  hacia abajo se angosta de 365 nm (FWHM, solo gauss) a 212 nm.
+
+Limitaciones: el spin-curl de la dona (polarización circular) queda
+aproximado con los planos de PyFocus (ver "Derivadas fuera del plano"), y el
+plano XY de PyFocus tiene algo de ruido de píxel (radio redondeado).
+
 ## Calibración foco → BFP (`calibracion_foco.py`)
 
 `w0` e `I0` de `beams/gauss.py` y `beams/dona.py` son los del back focal plane
@@ -216,4 +248,5 @@ Métricas de ancho: `'fwhm'` y `'r_1e2'` (gauss), `'r_anillo'` y
   `interfaz.py`) y simular el printing con los dos haces y el vidrio. Eso
   además da las derivadas exactas fuera del plano para la dona; con
   PyFocus, su spin-curl queda aproximado (ver arriba).
-- Falta calibrar el haz dona (`calibracion.json` solo tiene el gauss).
+- Falta calibrar el haz dona (`calibracion.json` solo tiene el gauss); por
+  ahora usa w0 = 5 mm e I0 = 6.1 mW/cm² provisorios (~1 mW en la muestra).
