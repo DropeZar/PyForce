@@ -5,7 +5,7 @@ de oro: la luz empuja la partícula, que está en agua, hasta el portaobjetos de
 vidrio, donde queda impresa. Se usan dos haces enfocados por objetivos opuestos
 (contrapropagantes): un haz gaussiano y un haz dona (vórtice). Los campos en el
 foco se calculan con [PyFocus](https://github.com/Stefani-Lab/PyFocus)
-(Richards-Wolf), o con `interfaz.py` cuando hace falta la interfaz agua/vidrio,
+(Richards-Wolf), incluida la interfaz agua/vidrio con el foco sobre el vidrio,
 y a partir de ellos se obtienen las fuerzas de gradiente, scattering y
 spin-curl en los planos XY y XZ.
 
@@ -28,8 +28,7 @@ python main.py            # campos -> fuerzas -> gráficos; guarda los campos en
 python grafico_lindo.py   # figura resumen 3x3 a partir de los .npz
 python particula.py       # polarizabilidad de Mie, Mie completo vs dipolo, comparación con Kuwata
 python calibracion_foco.py
-python fuerzas_gauss_interfaz.py   # printing con el gauss, con y sin vidrio -> resultados/gauss_interfaz/
-python validar_interfaz.py         # chequeos de interfaz.py y fuerzas.py
+python fuerzas_gauss_interfaz.py   # printing con el gauss, con y sin vidrio -> resultados/gauss_interfaz/ (~15 min)
 ```
 
 `main.py` y `calibracion_foco.py` están divididos en celdas (`#%%`) para
@@ -54,12 +53,10 @@ Ex_xz, Ey_xz, Ez_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
 | `fuerzas.py` | Funciones puras: factor de conversión a V/m, fuerzas (gradiente + scattering + spin-curl) en XY y XZ, espejado del haz contrapropagante. |
 | `graficos.py` | Mapas de magnitud + streamplot, comparación entre haces, desglose en componentes e intensidad. |
 | `grafico_lindo.py` | Figura resumen 3x3 (XY, XZ y corte de Fz en z = 0 con FWHM) a partir de los `.npz`. |
-| `pyfocus_wrapper.py` | Capa entre el código y PyFocus: lo corre sin abrir figuras, corrige la doble división λ/n, pasa la salida a la convención física (Ez y eje y) y da el factor de conversión a SI. |
+| `pyfocus_wrapper.py` | Capa entre el código y PyFocus: lo corre sin abrir figuras, corrige la doble división λ/n, pasa la salida a la convención física (Ez y eje y) y da el factor de conversión a SI. `campo_foco_vidrio` calcula el foco con el vidrio (`sim.custom`). |
 | `calibracion_foco.py` | De lo medido en el foco a los `w0`/`I0` del back focal plane (ver abajo). |
 | `calibracion_foco_gauss.py` | Predicción rápida del foco del haz gaussiano para unos `w0`/`I0` a mano. |
 | `calibracion.json` | Resultado de la calibración; lo leen `beams/*.py` al importarse. |
-| `interfaz.py` | Foco de un haz gaussiano con una interfaz plana (agua/vidrio): Richards-Wolf + Fresnel, mismas grillas y unidades que PyFocus, y derivadas exactas fuera del plano. |
-| `validar_interfaz.py` | Chequea `interfaz.py` (coincide con `sim.no_mask` a 1e-14, condiciones de borde, div E = 0) y que el total de `fuerzas.py` sea la fuerza dipolar exacta. |
 | `fuerzas_gauss_interfaz.py` | Printing con el gauss calibrado: fuerzas sin vidrio y con el vidrio en el foco. |
 | `resultados/` | Figuras y resúmenes publicados (ver [Resultados](#resultados)). |
 | `Objetivos.txt` | NA, n, h y f de los objetivos disponibles. |
@@ -112,8 +109,8 @@ tres términos (`fuerzas.py` los calcula por separado y los suma):
    scattering** y le resta ~15 %.
 
 Gradiente + scattering + spin-curl da exactamente la fuerza dipolar
-(`validar_interfaz.py` lo comprueba). El scattering tiene que ser el de
-Poynting: el término "orbital" `Im[Eⱼ* ∇Eⱼ]` ya incluye el spin-curl.
+(se verificó numéricamente). El scattering tiene que ser el de Poynting: el
+término "orbital" `Im[Eⱼ* ∇Eⱼ]` ya incluye el spin-curl.
 
 **Para imprimir** hace falta que la fuerza hacia el vidrio en el punto de
 contacto (centro de la NP a un radio del vidrio) llegue a
@@ -149,18 +146,20 @@ esquina de la grilla XY), y sus filas van de −z a +z.
 especular (z → −z) de las simuladas (`fuerzas.espejar_haz_contrapropagante`).
 
 **Derivadas fuera del plano.** Scattering y spin-curl necesitan derivadas
-perpendiculares al plano calculado (∂/∂z en XY, ∂/∂y en XZ). `interfaz.py` las
-da exactas. Con un solo plano de PyFocus, la de la componente normal sale de
-div E = 0 y las otras se toman como cero. Para polarización lineal en x eso
-es exacto en XZ, pero con polarización circular (la dona) el spin-curl queda
-~50 % mal.
+perpendiculares al plano calculado (∂/∂z en XY, ∂/∂y en XZ), que un plano
+solo no tiene. La de la componente normal sale de div E = 0 y las otras se
+toman como cero. Para polarización lineal en x eso es exacto en XZ; con
+polarización circular (la dona) el spin-curl queda ~50 % mal.
 
 **Interfaz agua/vidrio.** El portaobjetos (n = 1.52, con aceite de índice
-igualado abajo) se trata como semi-infinito. PyFocus no sirve para esto:
-`sim.no_mask`/`sim.VP` ignoran la interfaz, y en `sim.custom` (3.4.0) la onda
-reflejada de la componente x no lleva la fase `exp(2i k1 cosθ z_int)`, así que
-con polarización en x solo es correcta con la interfaz en el foco.
-`interfaz.py` lo resuelve por su cuenta (ver su docstring).
+igualado abajo) se trata como semi-infinito, con su superficie **en el
+foco**. Se calcula con `sim.custom` de PyFocus, la única función que tiene en
+cuenta una interfaz (`sim.no_mask`/`sim.VP` la ignoran), a través de
+`pyfocus_wrapper.campo_foco_vidrio`. Esa función corrige que `sim.custom` da
+los campos ~1 % más chicos (pesa mal los extremos de la integral) y los pasa a
+la misma convención que el resto. Sin vidrio coincide con `sim.no_mask` a
+5e-4. Solo vale con la interfaz en el foco: en otra posición `sim.custom` da
+mal la onda reflejada y la transmitida.
 
 **Convención de PyFocus.** `sim.no_mask`/`sim.VP` devuelven Ez con el signo
 opuesto al físico (con su Ez, div E ≠ 0) y el plano XY con las filas de +y a −y.
@@ -207,16 +206,17 @@ Fuerza hacia el vidrio en el punto de contacto, sobre el eje, a 1 mW:
 | caso | total | gradiente | scattering | spin-curl | potencia para 0.6 pN |
 |---|---|---|---|---|---|
 | sin vidrio | 1.59 pN | +0.01 | +1.87 | −0.28 | 0.38 mW |
-| con vidrio | 1.44 pN | −0.14 | +1.86 | −0.28 | 0.42 mW |
+| con vidrio | 1.44 pN | −0.13 | +1.85 | −0.27 | 0.42 mW |
 
 - **El scattering es lo que imprime:** empuja la NP hacia el vidrio con
   ~1.9 pN a 1 mW. El spin-curl le resta ~15 %.
 - **El vidrio reduce el empuje en el contacto ~10 %.** La reflexión en el
   vidrio (≈ 0.5 % en intensidad) forma una onda estacionaria. Justo en el
-  contacto, su gradiente apunta hacia arriba (−0.14 pN).
+  contacto, su gradiente apunta hacia arriba (−0.13 pN).
 - **Con 0.42 mW alcanza para imprimir** (0.6 pN en el contacto).
-- **En el plano de contacto la fuerza lateral apunta al eje** y casi no
-  cambia con el vidrio (~3 %): la NP se imprime centrada en el foco.
+- **En el plano de contacto la fuerza lateral apunta al eje** y cambia poco
+  con el vidrio (hasta ~7 % del máximo, sobre todo a lo largo de y): la NP
+  se imprime centrada en el foco.
 
 ## Calibración foco → BFP (`calibracion_foco.py`)
 

@@ -116,12 +116,12 @@ def campo_foco(funcion, NA, n, h, w0, wavelength, gamma, beta, I0,
     en las unidades internas de PyFocus (ver factor_E_foco).
 
     Ademas pasa la salida de PyFocus a la convencion fisica que usa el resto
-    del codigo (fuerzas.py, interfaz.py):
+    del codigo (fuerzas.py):
       - el plano XY de PyFocus tiene las filas de +y a -y: se da vuelta para
         que vayan de -y a +y (si no, las derivadas en y salen con el signo
         cambiado sin que se den vuelta las componentes Ey);
       - PyFocus devuelve Ez con el signo opuesto al fisico: con su Ez,
-        div E da del orden de |dEx/dx| en vez de 0 (ver validar_interfaz.py).
+        div E da del orden de |dEx/dx| en vez de 0 (con el signo cambiado da 0).
     |E|^2, el gradiente y el scattering no cambian; el spin-curl si, porque
     mezcla Ez con Ex y Ey.
 
@@ -135,6 +135,65 @@ def campo_foco(funcion, NA, n, h, w0, wavelength, gamma, beta, I0,
         x_steps, z_steps, x_range, z_range, z, nombre)
     return {"XY": (np.flipud(ex_xy), np.flipud(ey_xy), -np.flipud(ez_xy)),
             "XZ": None if solo_xy else (ex_xz, ey_xz, -ez_xz)}
+
+
+def campo_foco_vidrio(NA, n1, n2, h, w0, wavelength, gamma, beta, I0,
+                      x_steps, z_steps, x_range, z_range, z=0, divisiones=200):
+    """
+    Haz gaussiano enfocado en el medio n1 (agua) con la superficie de un
+    medio n2 (vidrio, semi-infinito) EN EL FOCO (z = 0). Usa sim.custom de
+    PyFocus con multilayer, que es la unica funcion de PyFocus que tiene en
+    cuenta una interfaz.
+
+    Solo para la interfaz en el foco: con la interfaz en otra posicion,
+    sim.custom (PyCustomFocus 3.4.0) da mal la onda reflejada de la
+    componente x y la transmitida.
+
+    Parametros como campo_foco (wavelength en vacio, h y w0 en mm, I0 en
+    mW/cm^2). z es la altura del plano XY y tambien el centro del plano XZ.
+    divisiones: puntos en theta y en phi de la integral de PyFocus.
+
+    Devuelve {"XY": (Ex,Ey,Ez), "XZ": (Ex,Ey,Ez), "x_xy", "x_xz", "z_xz"}, en
+    las mismas unidades y convencion fisica que campo_foco (filas de -y a +y
+    y de -z a +z, Ez con el signo fisico). Arriba del vidrio (z < 0) el
+    campo es incidente + reflejada; abajo, la transmitida. Con n2 = n1 es el
+    foco sin vidrio, calculado del mismo modo.
+
+    Detalles de sim.custom que se corrigen o hay que tener en cuenta:
+    - Grilla distinta de sim.no_mask: XY de nr x nr puntos y XZ de
+      nz x nr, con nr = rint(x_range/x_steps/sqrt(2)) y nz = rint(z_range/
+      z_steps/2), equiespaciados en [-x_range/2, x_range/2] y
+      [z - z_range/2, z + z_range/2]. Por eso se devuelven los ejes: el
+      paso real es x_range/(nr-1) y z_range/(nz-1), no x_steps y z_steps.
+      Para que x = 0 y la altura z queden en la grilla, nr y nz tienen que
+      ser impares.
+    - La integral en theta y phi usa paso alpha/N y 2pi/N con N puntos que
+      incluyen los dos extremos, asi que suma (N-1)/N de cada integral: el
+      campo sale (N-1)^2/N^2 veces el real (~1 % menos con N = 200). Se
+      multiplica por (N/(N-1))^2.
+    - Con interfaz PyFocus no divide lambda por n (la doble division de
+      campo_foco no aplica): se le pasa lambda en vacio.
+    """
+    from PyFocus import sim
+
+    uno = lambda rho, phi, w0, f, k: 1  # sin mascara: haz gaussiano liso
+    params = (False, True, NA, np.array([n1, n2], dtype=float), h, w0, wavelength,
+              gamma, beta, z, x_steps, z_steps, x_range, z_range, I0, '', '',
+              np.array([np.inf, np.inf]), 0, 'vidrio', divisiones, divisiones, False)
+    with _silencio():
+        ex_xz, ey_xz, ez_xz, ex_xy, ey_xy, ez_xy = sim.custom(uno, uno, *params)
+
+    corr = (divisiones / (divisiones - 1)) ** 2
+    nr = ex_xy.shape[1]
+    nz = ex_xz.shape[0]
+    x = np.linspace(-x_range / 2, x_range / 2, nr)
+    z_xz = z + np.linspace(-z_range / 2, z_range / 2, nz)
+
+    def fisico(ex, ey, ez):  # filas de +y/+z a -y/-z -> al reves, y -Ez
+        return tuple(corr * s * np.flipud(e) for s, e in ((1, ex), (1, ey), (-1, ez)))
+
+    return {"XY": fisico(ex_xy, ey_xy, ez_xy), "XZ": fisico(ex_xz, ey_xz, ez_xz),
+            "x_xy": x, "x_xz": x, "z_xz": z_xz}
 
 
 def factor_E_foco(n_foco):

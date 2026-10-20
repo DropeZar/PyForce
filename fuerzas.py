@@ -57,7 +57,7 @@ def fuerzas_xy(ex, ey, ez, dx, dy, dz, alpha_p, alpha_pp, eps_m, dE_dz=None):
     Fuerza optica (gradiente + scattering + spin-curl) en el plano XY.
 
     Campos en V/m, pasos en m, alpha en m^3. Las filas tienen que ir de -y a
-    +y (como devuelven pyfocus_wrapper.campo_foco e interfaz.py).
+    +y (como devuelven pyfocus_wrapper.campo_foco y campo_foco_vidrio).
 
     Total = gradiente + scattering (Poynting) + spin-curl (ver arriba).
 

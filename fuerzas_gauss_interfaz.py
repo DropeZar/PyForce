@@ -13,8 +13,14 @@ ocupa z > 0. La NP (radio a) llega al vidrio con el centro en z = -a: ese
 es el "plano de contacto", donde queda impresa. En los graficos +z va
 hacia ABAJO (el haz baja desde el objetivo hacia el vidrio).
 
-Fuerzas: gradiente + scattering + spin-curl (fuerzas.py), con las derivadas
-fuera del plano exactas (interfaz.py).
+Campos: PyFocus (sim.custom con la interfaz en el foco), via
+pyfocus_wrapper.campo_foco_vidrio. "Sin vidrio" se calcula igual, con
+n2 = n1, para comparar con el mismo metodo y la misma grilla.
+
+Fuerzas: gradiente + scattering + spin-curl (fuerzas.py). Las derivadas
+fuera del plano se aproximan como en fuerzas.py (con div E = 0): en el
+plano XZ es exacto para este haz (polarizado en x); en el plano XY el
+spin-curl lateral queda aproximado.
 
 Salida en resultados/gauss_interfaz/:
     fuerzas_xz.png    mapas XZ sin y con vidrio
@@ -22,7 +28,7 @@ Salida en resultados/gauss_interfaz/:
     resumen.md        fuerza hacia el vidrio en el contacto (por componente) y
                       potencia necesaria para llegar a F_IMPRESION_pN
 
-Uso:  python fuerzas_gauss_interfaz.py
+Uso:  python fuerzas_gauss_interfaz.py     (~15 min: sim.custom es lento)
 """
 import os
 
@@ -31,75 +37,61 @@ import matplotlib.pyplot as plt
 
 from beams import gauss
 from fuerzas import calcular_factor_E_foco, fuerzas_xy, fuerzas_xz
-from interfaz import FocoConInterfaz, ejes_xy, ejes_xz
 from particula import calc_alpha
-from sim_config import (x_steps, z_steps, x_range, z_range, eps_m, n_vidrio,
-                        radio_particula, dx_fuerzas, dy_fuerzas, dz_fuerzas,
-                        F_IMPRESION_pN)
+from pyfocus_wrapper import campo_foco_vidrio
+from sim_config import eps_m, n_vidrio, radio_particula, F_IMPRESION_pN
 
-Z_VIDRIO = 0.0   # posicion de la superficie del vidrio respecto del foco (nm)
-Z_XZ = (-1100, 100)  # ventana en z de los mapas XZ (nm): la zona de agua por donde llega la NP
+# Grilla de sim.custom: con estos valores quedan 171 puntos en x (paso
+# ~7.1 nm) y 121 en z (paso ~10.1 nm), los dos impares para que x = 0 y la
+# altura del plano de contacto caigan justo en la grilla.
+X_RANGE, X_STEPS = 1210, 5
+Z_RANGE, Z_STEPS = 1210, 5
 CARPETA = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        'resultados', 'gauss_interfaz')
 
 pN = 1e12
 a_nm = radio_particula * 1e9
-z_contacto = Z_VIDRIO - a_nm
+z_contacto = -a_nm  # vidrio en z = 0
 factor_E = calcular_factor_E_foco(gauss.n)
 alpha_p, alpha_pp = calc_alpha(gauss.wavelength)
-CASOS = {'sin vidrio': None, 'con vidrio': Z_VIDRIO}
+CASOS = {'sin vidrio': gauss.n, 'con vidrio': n_vidrio}  # n2 de cada caso
 
 
 # ---------------------------------------------------------------------------
 # Calculo
 # ---------------------------------------------------------------------------
-def _SI(E, por_nm=False):
-    return tuple(e * factor_E * (1e9 if por_nm else 1) for e in E)
-
-
-def _foco(z_int):
-    return FocoConInterfaz(gauss.NA, gauss.n, gauss.h, gauss.w0, gauss.wavelength,
-                           gauss.gamma, gauss.beta, gauss.I0,
-                           n2=None if z_int is None else n_vidrio, z_int=z_int)
-
-
-def mapas(z_int):
-    """Fuerzas (pN) en el plano XZ y en el plano de contacto XY (z = -a)."""
-    foco = _foco(z_int)
-    x_xy = ejes_xy(x_steps, x_range)
-    x_xz = ejes_xz(x_steps, z_steps, x_range, z_range)[0]
-    z_xz = np.arange(Z_XZ[0], Z_XZ[1] + 0.1, z_steps)
-    xy = fuerzas_xy(*_SI(foco.plano_xy(x_xy, z_contacto)), dx_fuerzas, dy_fuerzas,
-                    dz_fuerzas, alpha_p, alpha_pp, eps_m,
-                    dE_dz=_SI(foco.derivada_xy_z(x_xy, z_contacto), por_nm=True))
-    xz = fuerzas_xz(*_SI(foco.plano_xz(x_xz, z_xz)), dx_fuerzas, dz_fuerzas,
-                    alpha_p, alpha_pp, eps_m,
-                    dE_dy=_SI(foco.derivada_xz_y(x_xz, z_xz), por_nm=True))
+def mapas(n2):
+    """
+    Fuerzas (pN) en el plano de contacto XY (z = -a) y en el plano XZ
+    centrado en esa altura, para el vidrio de indice n2 en z = 0.
+    """
+    c = campo_foco_vidrio(gauss.NA, gauss.n, n2, gauss.h, gauss.w0, gauss.wavelength,
+                          gauss.gamma, gauss.beta, gauss.I0,
+                          X_STEPS, Z_STEPS, X_RANGE, Z_RANGE, z=z_contacto)
+    x, z = c['x_xz'], c['z_xz']
+    dx, dz = (x[1] - x[0]) * 1e-9, (z[1] - z[0]) * 1e-9
+    xy = fuerzas_xy(*[e * factor_E for e in c['XY']], dx, dx, dz,
+                    alpha_p, alpha_pp, eps_m)
+    xz = fuerzas_xz(*[e * factor_E for e in c['XZ']], dx, dz,
+                    alpha_p, alpha_pp, eps_m)
     xz = [F * pN for F in xz]
     # la NP no puede tener el centro a menos de a del vidrio (aunque se
     # calcule "sin vidrio", se recorta igual para comparar la misma region)
-    afuera = (z_xz > z_contacto)[:, None]
+    afuera = (z > z_contacto + 1e-6)[:, None]
     xz = [np.where(afuera, np.nan, F) for F in xz]
-    return dict(x_xy=x_xy, xy=[F * pN for F in xy], x_xz=x_xz, z_xz=z_xz, xz=xz)
+    return dict(x_xy=c['x_xy'], xy=[F * pN for F in xy], x_xz=x, z_xz=z, xz=xz)
 
 
-def fuerza_en_contacto(z_int):
-    """Fz (pN) y sus componentes (grad, scat, spin-curl) en el contacto, sobre el eje."""
-    x = np.array([-1.0, 0.0, 1.0]) * x_steps
-    z = z_contacto + np.array([-1.0, 0.0, 1.0]) * z_steps
-    E = _foco(z_int).plano_xz(x, z)
-    r = fuerzas_xz(*_SI(E), dx_fuerzas, dz_fuerzas, alpha_p, alpha_pp, eps_m)
-    return {k: r[i][1, 1] * pN for k, i in (('total', 1), ('grad', 3), ('scat', 5), ('sc', 7))}
+def fuerza_en_contacto(m):
+    """Fz (pN) y sus componentes en el contacto (x = y = 0, z = -a), del plano XZ."""
+    i = np.argmin(np.abs(m['z_xz'] - z_contacto))
+    j = np.argmin(np.abs(m['x_xz']))
+    return {k: m['xz'][n][i, j] for k, n in (('total', 1), ('grad', 3), ('scat', 5), ('sc', 7))}
 
 
 # ---------------------------------------------------------------------------
 # Graficos
 # ---------------------------------------------------------------------------
-def _sombrear_vidrio(ax, z_fondo):
-    ax.axhspan(Z_VIDRIO, z_fondo, color='lightsteelblue', zorder=3)
-    ax.axhspan(z_contacto, Z_VIDRIO, color='0.85', zorder=3)
-
-
 def graficar_xz(m, archivo):
     vmax = max(np.nanmax(np.hypot(mm['xz'][0], mm['xz'][1])) for mm in m.values())
     fig, axes = plt.subplots(1, 2, figsize=(10.5, 5), sharey=True)
@@ -110,15 +102,16 @@ def graficar_xz(m, archivo):
                        cmap='viridis', vmin=0, vmax=vmax, aspect='equal')
         ax.streamplot(x, z, np.ma.masked_invalid(Fx), np.ma.masked_invalid(Fz),
                       density=1.4, color='white', linewidth=0.6, arrowsize=0.7)
-        if CASOS[nombre] is not None:
-            _sombrear_vidrio(ax, z[-1])
-            ax.text(0, (Z_VIDRIO + z[-1]) / 2, f'vidrio (n = {n_vidrio})', ha='center',
-                    va='center', zorder=4, fontsize=8)
+        if nombre == 'con vidrio':
+            ax.axhspan(0, z[-1], color='lightsteelblue', zorder=3)
+            ax.axhspan(z_contacto, 0, color='0.85', zorder=3)
+            ax.text(0, 50, f'vidrio (n = {n_vidrio})', ha='center', va='center',
+                    zorder=4, fontsize=8)
         else:
             ax.axhspan(z_contacto, z[-1], color='0.85', zorder=3)
         ax.axhline(z_contacto, color='tab:red', lw=0.8, ls='--', zorder=4)
-        ax.set_xlim(-700, 700)
-        ax.set_ylim(z[-1], z[0])  # +z hacia abajo
+        ax.set_xlim(-600, 600)
+        ax.set_ylim(100, z[0])  # +z hacia abajo; se muestra hasta 100 nm adentro del vidrio
         ax.set_title(nombre)
         ax.set_xlabel('x (nm)')
     axes[0].set_ylabel('z (nm)   (haz hacia abajo)')
@@ -143,7 +136,7 @@ def graficar_xy(m, archivo):
         im = ax.imshow(F[nombre], extent=ext, origin='lower', cmap='viridis', vmin=0, vmax=vmax)
         ax.streamplot(x, x, mm['xy'][0], mm['xy'][1], density=1.3, color='white',
                       linewidth=0.6, arrowsize=0.7)
-        ax.set_title(f'{nombre}')
+        ax.set_title(nombre)
         fig.colorbar(im, ax=ax, label='|F| (pN)')
     im = axes[2].imshow(dif, extent=ext, origin='lower', cmap='magma')
     axes[2].set_title('|F_con − F_sin| / max|F_sin|')
@@ -163,13 +156,11 @@ if __name__ == '__main__':
     print(f"gauss: NA={gauss.NA}, n={gauss.n}, w0={gauss.w0:.3f} mm, I0={gauss.I0:.3f} mW/cm2, "
           f"lambda={gauss.wavelength} nm;  alpha' = {alpha_p:.3e}, alpha'' = {alpha_pp:.3e} m^3")
 
-    m = {nombre: mapas(z_int) for nombre, z_int in CASOS.items()}
+    m = {nombre: mapas(n2) for nombre, n2 in CASOS.items()}
     graficar_xz(m, os.path.join(CARPETA, 'fuerzas_xz.png'))
     graficar_xy(m, os.path.join(CARPETA, 'fuerzas_xy.png'))
+    contacto = {nombre: fuerza_en_contacto(mm) for nombre, mm in m.items()}
 
-    contacto = {nombre: fuerza_en_contacto(z_int) for nombre, z_int in CASOS.items()}
-
-    # resumen
     lineas = [
         '# Printing con el haz gaussiano: fuerzas con y sin el vidrio', '',
         f'- Haz: NA = {gauss.NA}, n = {gauss.n} (agua), λ = {gauss.wavelength} nm, '
@@ -179,7 +170,8 @@ if __name__ == '__main__':
         f'α\'\' = {alpha_pp:.3e} m³ (Mie, dipolo a1).',
         f'- Vidrio: n = {n_vidrio}, semi-infinito, con la superficie en el foco (z = 0). '
         f'Contacto: centro de la NP en z = −a = {z_contacto:.0f} nm.',
-        '- Fuerza total = gradiente + scattering + spin-curl.', '',
+        '- Campos: PyFocus (sim.custom con la interfaz). Fuerza total = gradiente + '
+        'scattering + spin-curl.', '',
         '## En el punto de contacto sobre el eje (x = y = 0, z = −a)', '',
         '| caso | Fz total (pN) | gradiente | scattering | spin-curl |',
         '|---|---|---|---|---|',
@@ -191,8 +183,7 @@ if __name__ == '__main__':
                '| caso | Fz en el contacto a 1 mW (pN) | potencia necesaria (mW) |',
                '|---|---|---|']
     for nombre, p in contacto.items():
-        f1 = p['total']
-        lineas.append(f'| {nombre} | {f1:.3f} | {F_IMPRESION_pN / f1:.2f} |')
+        lineas.append(f"| {nombre} | {p['total']:.3f} | {F_IMPRESION_pN / p['total']:.2f} |")
     lineas += ['', 'Fuerzas a P = 1 mW en la muestra (escalan linealmente con P). '
                'Fz > 0 empuja la NP hacia el vidrio.', '']
     with open(os.path.join(CARPETA, 'resumen.md'), 'w', encoding='utf-8', newline='\n') as fh:
