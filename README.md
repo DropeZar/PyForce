@@ -3,7 +3,7 @@
 Simulación de las fuerzas ópticas en el **printing óptico** de nanopartículas
 de oro: la luz empuja la partícula, que está en agua, hasta el portaobjetos de
 vidrio, donde queda impresa. Se usan dos haces enfocados por objetivos opuestos
-(contrapropagantes): un haz gaussiano y un haz dona (vórtice). Los campos en el
+(contrapropagantes): un haz gaussiano y un haz dona. Los campos en el
 foco se calculan con [PyFocus](https://github.com/Stefani-Lab/PyFocus)
 (Richards-Wolf), incluida la interfaz agua/vidrio con el foco sobre el vidrio,
 y a partir de ellos se obtienen las fuerzas de gradiente, scattering y
