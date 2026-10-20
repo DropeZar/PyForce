@@ -186,7 +186,7 @@ muestra.
 ![Haces contrapropagantes](resultados/haces_contrapropagantes/resumen.png)
 
 - **Fila 1, plano focal (XY):** el gauss lleva la NP hacia el eje. La dona
-  (vórtice con polarización circular) lleva momento angular, y su fuerza
+  lleva momento angular, y su fuerza
   tiene una componente azimutal que hace girar la NP alrededor del eje.
 - **Fila 2, plano XZ (+z hacia abajo):** el gauss empuja hacia abajo en el
   eje; la dona empuja hacia arriba en su anillo.
