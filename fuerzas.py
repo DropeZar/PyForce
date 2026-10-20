@@ -14,7 +14,6 @@ import numpy as np
 from scipy.constants import epsilon_0
 
 
-
 def calcular_factor_E_foco(n_foco):
     """
     Factor (constante) para pasar los campos de PyFocus a V/m, usando el

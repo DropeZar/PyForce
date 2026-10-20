@@ -174,7 +174,7 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
         ax.set_xlabel('x (nm)')
         ax.set_ylabel('z (nm)' if i == 0 else '')
 
-    # --- fila 3: corte de Fz en z=0, con escala de fuerza compartida ---
+    # --- fila 3: corte de -Fz en z=0 (positivo = hacia arriba en la fila 2) ---
     cortes = [disp_Fz_g, disp_Fz_d, disp_Fz_tot]
     calcular_fwhm_en = [True, False, True]
     ventanas_fwhm = [None, None, ventana_fwhm_resultante]
@@ -240,9 +240,9 @@ def graficar_resumen(npz_gauss, npz_dona, rango_grafico, titulo_general='',
 
         ax.set_title(f'{tit} (z=0)', fontsize=10)
         ax.set_xlabel('x (nm)')
-        ax.set_ylabel('Fz (pN)' if i == 0 else '')
+        ax.set_ylabel('-Fz (pN)' if i == 0 else '')
+        ax.grid(alpha=0.3)
 
-    ax.grid(alpha=0.3)
     # --- colorbars compartidas (una por fila de mapas) ---
     cax1 = fig.add_subplot(gs[0, 3])
     fig.colorbar(im, cax=cax1, label='|F| (pN)')
