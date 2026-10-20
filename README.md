@@ -170,6 +170,28 @@ cada píxel se redondea, lo que mete ruido en las derivadas.
 
 ## Resultados
 
+### Haces contrapropagantes gauss + dona, sin vidrio (`resultados/haces_contrapropagantes/`)
+
+Figura de `grafico_lindo.py` (a partir de los campos que guarda `main.py`). NP
+de oro de 100 nm en agua, sin vidrio. Gauss calibrado a 1 mW (592 nm, baja
+desde arriba). La dona (532 nm, polarización circular, sube desde abajo) **no
+está calibrada**: se usan w0 = 5 mm e I0 = 6.1 mW/cm², que dan 1 mW en la
+muestra.
+
+![Haces contrapropagantes](resultados/haces_contrapropagantes/resumen.png)
+
+- **Fila 1, plano focal (XY):** el gauss lleva la NP hacia el eje. La dona
+  (vórtice con polarización circular) lleva momento angular, y su fuerza
+  tiene una componente azimutal que hace girar la NP alrededor del eje.
+- **Fila 2, plano XZ (+z hacia abajo):** el gauss empuja hacia abajo en el
+  eje; la dona empuja hacia arriba en su anillo.
+- **Fila 3, −Fz en z = 0 (negativo = hacia abajo):** al sumar los dos haces,
+  la dona cancela el empuje del gauss lejos del eje. La zona que empuja
+  hacia abajo se angosta de 365 nm (FWHM, solo gauss) a 212 nm.
+
+Limitaciones: el spin-curl de la dona (polarización circular) queda
+aproximado con los planos de PyFocus (ver "Derivadas fuera del plano"), y el
+plano XY de PyFocus tiene algo de ruido de píxel (radio redondeado).
 ### Printing con el haz gaussiano, con y sin vidrio (`resultados/gauss_interfaz/`)
 
 Gauss calibrado (FWHM = 330 nm, P = 1 mW), NP de Au de 100 nm de diámetro en
@@ -196,29 +218,6 @@ Fuerza hacia el vidrio en el punto de contacto, sobre el eje, a 1 mW:
 - **En el plano de contacto la fuerza lateral apunta al eje** y casi no
   cambia con el vidrio (~3 %): la NP se imprime centrada en el foco.
 
-### Haces contrapropagantes gauss + dona, sin vidrio (`resultados/haces_contrapropagantes/`)
-
-Figura de `grafico_lindo.py` (a partir de los campos que guarda `main.py`). NP
-de oro de 100 nm en agua, sin vidrio. Gauss calibrado a 1 mW (592 nm, baja
-desde arriba). La dona (532 nm, polarización circular, sube desde abajo) **no
-está calibrada**: se usan w0 = 5 mm e I0 = 6.1 mW/cm², que dan 1 mW en la
-muestra.
-
-![Haces contrapropagantes](resultados/haces_contrapropagantes/resumen.png)
-
-- **Fila 1, plano focal (XY):** el gauss lleva la NP hacia el eje. La dona
-  (vórtice con polarización circular) lleva momento angular, y su fuerza
-  tiene una componente azimutal que hace girar la NP alrededor del eje.
-- **Fila 2, plano XZ (+z hacia abajo):** el gauss empuja hacia abajo en el
-  eje; la dona empuja hacia arriba en su anillo.
-- **Fila 3, −Fz en z = 0 (negativo = hacia abajo):** al sumar los dos haces,
-  la dona cancela el empuje del gauss lejos del eje. La zona que empuja
-  hacia abajo se angosta de 365 nm (FWHM, solo gauss) a 212 nm.
-
-Limitaciones: el spin-curl de la dona (polarización circular) queda
-aproximado con los planos de PyFocus (ver "Derivadas fuera del plano"), y el
-plano XY de PyFocus tiene algo de ruido de píxel (radio redondeado).
-
 ## Calibración foco → BFP (`calibracion_foco.py`)
 
 `w0` e `I0` de `beams/gauss.py` y `beams/dona.py` son los del back focal plane
@@ -241,12 +240,5 @@ Métricas de ancho: `'fwhm'` y `'r_1e2'` (gauss), `'r_anillo'` y
 
 ## Pendientes
 
-- Las fuerzas usan la aproximación dipolar (α de Mie con a1). Para ir más
-  allá (multipolos en un haz enfocado) hace falta Mie generalizada
-  (GLMT / matriz T); con a = 50 nm la diferencia esperada es de 1–4 %.
-- Agregar la interfaz al haz dona (necesita la máscara de vórtice en
-  `interfaz.py`) y simular el printing con los dos haces y el vidrio. Eso
-  además da las derivadas exactas fuera del plano para la dona; con
-  PyFocus, su spin-curl queda aproximado (ver arriba).
 - Falta calibrar el haz dona (`calibracion.json` solo tiene el gauss); por
   ahora usa w0 = 5 mm e I0 = 6.1 mW/cm² provisorios (~1 mW en la muestra).
