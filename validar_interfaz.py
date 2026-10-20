@@ -1,0 +1,83 @@
+# -*- coding: utf-8 -*-
+"""
+validar_interfaz.py
+
+Chequeos de interfaz.py:
+
+  1) Sin interfaz tiene que dar lo mismo que PyFocus (sim.no_mask, via
+     pyfocus_wrapper.campo_foco). Para comparar punto a punto se evalua
+     interfaz.py en los mismos puntos que usa PyFocus, que no son
+     exactamente los de la grilla nominal:
+       - XY: filas de +y a -y, y de -(N/2-1) a N/2 pixeles en y pero de
+         -N/2 a N/2-1 en x; ademas cada pixel toma el radio redondeado al
+         paso radial dr = x_range/sqrt(2)/nr (cart2pol(round_r=True)).
+       - XZ: x = indice * dr (no x_steps).
+     Ez se compara con signo cambiado (ver docstring de interfaz.py).
+  2) Con interfaz, condiciones de borde en z = z_int: Ex y Ey continuos y
+     n1^2 Ez1 = n2^2 Ez2 (D normal continuo).
+
+Resultado esperado: errores ~1e-13 en (1) y ~1e-8 en (2) (el 1e-8 es por
+evaluar a z_int -+ 1e-6 nm).
+
+Uso:  python validar_interfaz.py
+"""
+import numpy as np
+from PyFocus import sim
+
+from beams import gauss
+from interfaz import FocoConInterfaz, ejes_xy
+from pyfocus_wrapper import campo_foco
+
+
+def _err(a, b):
+    return np.max(np.abs(a - b)) / np.max(np.abs(b))
+
+
+def comparar_con_pyfocus(x_steps=10, z_steps=10, x_range=1200, z_range=1200):
+    pf = campo_foco(sim.no_mask, gauss.NA, gauss.n, gauss.h, gauss.w0, gauss.wavelength,
+                    gauss.gamma, gauss.beta, gauss.I0, x_steps, z_steps, x_range, z_range)
+    foco = FocoConInterfaz(gauss.NA, gauss.n, gauss.h, gauss.w0, gauss.wavelength,
+                           gauss.gamma, gauss.beta, gauss.I0)
+    nr = int(np.rint(x_range / x_steps / 2 ** 0.5))
+    dr = x_range / 2 ** 0.5 / nr
+
+    # XY en los puntos de PyFocus
+    x = ejes_xy(x_steps, x_range)
+    X, Y = np.meshgrid(x, x + x_steps)
+    rho = np.rint(np.hypot(X, Y) / x_steps) * dr
+    E = foco._campo(rho.ravel(), np.arctan2(Y, X).ravel(), [0.0], ('inc',))
+    xy = [e[:, 0].reshape(X.shape) for e in E]
+    pf_xy = [np.flipud(e) for e in pf['XY']]
+
+    # XZ en los puntos de PyFocus
+    nx = pf['XZ'][0].shape[1]
+    x_xz = (np.arange(nx) - (nr - 1)) * dr
+    nz = pf['XZ'][0].shape[0]
+    z_xz = (np.arange(nz) - nz // 2) * (z_range / 2 / int(np.rint(z_range / z_steps / 2)))
+    xz = foco.plano_xz(x_xz, z_xz)
+
+    print("1) Sin interfaz vs PyFocus (error maximo / maximo de cada componente)")
+    for plano, a, b in (('XY', xy, pf_xy), ('XZ', xz, pf['XZ'])):
+        I_a = sum(np.abs(e) ** 2 for e in a)
+        I_b = sum(np.abs(e) ** 2 for e in b)
+        ey = _err(a[1], b[1]) if np.abs(b[1]).max() > 0 else np.abs(a[1]).max()
+        print(f"   {plano}: |E|^2 {_err(I_a, I_b):.1e}   Ex {_err(a[0], b[0]):.1e}   "
+              f"Ey {ey:.1e}   Ez {_err(a[2], -b[2]):.1e} (vs -Ez de PyFocus)")
+
+
+def condiciones_de_borde(n2=1.52, z_int=300.0):
+    foco = FocoConInterfaz(gauss.NA, gauss.n, gauss.h, gauss.w0, gauss.wavelength,
+                           45, 30, gauss.I0, n2=n2, z_int=z_int)  # polarizacion general
+    x = np.linspace(-800, 800, 41)
+    X, Y = np.meshgrid(x, x * 0.7)
+    eps = 1e-6
+    E1 = foco.campo_puntos(X, Y, z_int - eps)
+    E2 = foco.campo_puntos(X, Y, z_int + eps)
+    print(f"2) Condiciones de borde en z_int = {z_int:.0f} nm (n1 = {gauss.n}, n2 = {n2})")
+    print(f"   Ex {_err(E1[0], E2[0]):.1e}   Ey {_err(E1[1], E2[1]):.1e}   "
+          f"n^2 Ez {_err(gauss.n ** 2 * E1[2], n2 ** 2 * E2[2]):.1e}")
+
+
+if __name__ == '__main__':
+    comparar_con_pyfocus()
+    condiciones_de_borde()
