@@ -89,10 +89,12 @@ def _metricas(I, dx_nm):
             anchos.append((der - izq) * dx_nm * factor)
         out[clave + '_nm'] = _media(anchos)
 
-    # --- anillo (dona): centro del arreglo; radio y grosor del maximo radial ---
-    ic = N // 2
+    # --- anillo (dona): centro del eje optico; radio y grosor del maximo radial ---
+    # En la grilla XY de PyFocus (ya con filas de -y a +y, ver
+    # pyfocus_wrapper.campo_foco) x = 0 es la columna N//2 e y = 0 la fila N//2 - 1.
+    fy0, cx0 = N // 2 - 1, N // 2
     radios, grosores = [], []
-    for perfil in (I[ic, :], I[:, ic]):
+    for perfil, ic in ((I[fy0, :], cx0), (I[:, cx0], fy0)):
         for lado in (+1, -1):
             semi = perfil[ic:] if lado == 1 else perfil[ic::-1]
             j = int(np.argmax(semi))

@@ -115,6 +115,16 @@ def campo_foco(funcion, NA, n, h, w0, wavelength, gamma, beta, I0,
     lambda ya aplicada. Devuelve dict {"XY": (Ex,Ey,Ez), "XZ": (Ex,Ey,Ez)}
     en las unidades internas de PyFocus (ver factor_E_foco).
 
+    Ademas pasa la salida de PyFocus a la convencion fisica que usa el resto
+    del codigo (fuerzas.py, interfaz.py):
+      - el plano XY de PyFocus tiene las filas de +y a -y: se da vuelta para
+        que vayan de -y a +y (si no, las derivadas en y salen con el signo
+        cambiado sin que se den vuelta las componentes Ey);
+      - PyFocus devuelve Ez con el signo opuesto al fisico: con su Ez,
+        div E da del orden de |dEx/dx| en vez de 0 (ver validar_interfaz.py).
+    |E|^2, el gradiente y el scattering no cambian; el spin-curl si, porque
+    mezcla Ez con Ex y Ey.
+
     solo_xy=True: calcula una sola fila en z (rapido); "XZ" queda en None.
     """
     lam = lam_pyfocus(wavelength, n)
@@ -123,8 +133,8 @@ def campo_foco(funcion, NA, n, h, w0, wavelength, gamma, beta, I0,
     ex_xz, ey_xz, ez_xz, ex_xy, ey_xy, ez_xy = _correr(
         funcion, NA, n, h, w0, lam, gamma, beta, I0,
         x_steps, z_steps, x_range, z_range, z, nombre)
-    return {"XY": (ex_xy, ey_xy, ez_xy),
-            "XZ": None if solo_xy else (ex_xz, ey_xz, ez_xz)}
+    return {"XY": (np.flipud(ex_xy), np.flipud(ey_xy), -np.flipud(ez_xy)),
+            "XZ": None if solo_xy else (ex_xz, ey_xz, -ez_xz)}
 
 
 def factor_E_foco(n_foco):

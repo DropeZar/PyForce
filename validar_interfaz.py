@@ -8,16 +8,19 @@ Chequeos de interfaz.py:
      pyfocus_wrapper.campo_foco). Para comparar punto a punto se evalua
      interfaz.py en los mismos puntos que usa PyFocus, que no son
      exactamente los de la grilla nominal:
-       - XY: filas de +y a -y, y de -(N/2-1) a N/2 pixeles en y pero de
+       - XY: de -(N/2-1) a N/2 pixeles en y pero de
          -N/2 a N/2-1 en x; ademas cada pixel toma el radio redondeado al
          paso radial dr = x_range/sqrt(2)/nr (cart2pol(round_r=True)).
        - XZ: x = indice * dr (no x_steps).
-     Ez se compara con signo cambiado (ver docstring de interfaz.py).
+     campo_foco ya devuelve el XY con filas de -y a +y y Ez con el signo
+     fisico.
   2) Con interfaz, condiciones de borde en z = z_int: Ex y Ey continuos y
      n1^2 Ez1 = n2^2 Ez2 (D normal continuo).
+  3) div E = 0 a los dos lados de la interfaz (diferencias finitas). Con
+     el Ez tal como lo devuelve PyFocus (signo opuesto) daria ~2.
 
-Resultado esperado: errores ~1e-13 en (1) y ~1e-8 en (2) (el 1e-8 es por
-evaluar a z_int -+ 1e-6 nm).
+Resultado esperado: errores ~1e-13 en (1), ~1e-8 en (2) (por evaluar a
+z_int -+ 1e-6 nm) y ~1e-6 en (3) (diferencias finitas).
 
 Uso:  python validar_interfaz.py
 """
@@ -47,7 +50,7 @@ def comparar_con_pyfocus(x_steps=10, z_steps=10, x_range=1200, z_range=1200):
     rho = np.rint(np.hypot(X, Y) / x_steps) * dr
     E = foco._campo(rho.ravel(), np.arctan2(Y, X).ravel(), [0.0], ('inc',))
     xy = [e[:, 0].reshape(X.shape) for e in E]
-    pf_xy = [np.flipud(e) for e in pf['XY']]
+    pf_xy = pf['XY']
 
     # XZ en los puntos de PyFocus
     nx = pf['XZ'][0].shape[1]
@@ -62,7 +65,7 @@ def comparar_con_pyfocus(x_steps=10, z_steps=10, x_range=1200, z_range=1200):
         I_b = sum(np.abs(e) ** 2 for e in b)
         ey = _err(a[1], b[1]) if np.abs(b[1]).max() > 0 else np.abs(a[1]).max()
         print(f"   {plano}: |E|^2 {_err(I_a, I_b):.1e}   Ex {_err(a[0], b[0]):.1e}   "
-              f"Ey {ey:.1e}   Ez {_err(a[2], -b[2]):.1e} (vs -Ez de PyFocus)")
+              f"Ey {ey:.1e}   Ez {_err(a[2], b[2]):.1e}")
 
 
 def condiciones_de_borde(n2=1.52, z_int=300.0):
@@ -78,6 +81,22 @@ def condiciones_de_borde(n2=1.52, z_int=300.0):
           f"n^2 Ez {_err(gauss.n ** 2 * E1[2], n2 ** 2 * E2[2]):.1e}")
 
 
+def divergencia(n2=1.52, z_int=300.0, h=0.5):
+    foco = FocoConInterfaz(gauss.NA, gauss.n, gauss.h, gauss.w0, gauss.wavelength,
+                           45, 30, gauss.I0, n2=n2, z_int=z_int)
+    x = np.linspace(-400, 400, 33)
+    X, Y = np.meshgrid(x, x * 0.8 + 13)
+    print(f"3) div E / max|dEx/dx| (interfaz en z = {z_int:.0f} nm)")
+    for z in (z_int - 200, z_int + 200):
+        E = lambda dx, dy, dz: foco.campo_puntos(X + dx, Y + dy, z + dz)
+        dEx = (E(h, 0, 0)[0] - E(-h, 0, 0)[0]) / (2 * h)
+        dEy = (E(0, h, 0)[1] - E(0, -h, 0)[1]) / (2 * h)
+        dEz = (E(0, 0, h)[2] - E(0, 0, -h)[2]) / (2 * h)
+        print(f"   z = {z:.0f} nm: {np.abs(dEx + dEy + dEz).max() / np.abs(dEx).max():.1e}"
+              f"   (con -Ez: {np.abs(dEx + dEy - dEz).max() / np.abs(dEx).max():.1f})")
+
+
 if __name__ == '__main__':
     comparar_con_pyfocus()
     condiciones_de_borde()
+    divergencia()
