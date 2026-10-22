@@ -121,9 +121,8 @@ Gradiente + scattering + spin-curl da exactamente la fuerza dipolar
 (se verificó numéricamente). El scattering tiene que ser el de Poynting: el
 término "orbital" `Im[Eⱼ* ∇Eⱼ]` ya incluye el spin-curl.
 
-**Para imprimir** hace falta que la fuerza hacia el vidrio en el punto de
-contacto (centro de la NP a un radio del vidrio) llegue a
-**≈ 0.6 pN** (medido; `sim_config.F_IMPRESION_pN`). Lateralmente, el
+**Para imprimir** hace falta una fuerza hacia el vidrio de **≈ 0.6 pN**
+(medido; `sim_config.F_IMPRESION_pN`). Lateralmente, el
 gradiente lleva la NP hacia el eje del haz, lo que fija dónde queda impresa.
 
 **Validez del modelo dipolar.** Con a = 50 nm, los multipolos más altos de Mie
@@ -221,32 +220,34 @@ toma del lado del vidrio.
 - **En el plano focal el perfil transversal casi no cambia:** el pico baja
   de 900 a 890 kW/cm² y el ancho es el mismo.
 
-### Printing con el haz gaussiano, con y sin vidrio (`resultados/gauss_interfaz/`)
+### Fuerzas del haz gaussiano en el foco, con y sin vidrio (`resultados/gauss_interfaz/`)
 
 Gauss calibrado (FWHM = 330 nm, P = 1 mW), NP de Au de 100 nm de diámetro en
-agua, foco sobre la superficie del vidrio (z = 0). La NP queda impresa con el
-centro en z = −a = −50 nm (punto de contacto). Tabla completa en
-[`resumen.md`](resultados/gauss_interfaz/resumen.md).
+agua, superficie del vidrio en el foco (z = 0). Figuras de
+`fuerzas_gauss_interfaz.py`. Las fuerzas solo se calculan en el agua: con
+vidrio, el plano focal es la superficie y se toma del lado del agua. Tabla
+completa en [`resumen.md`](resultados/gauss_interfaz/resumen.md).
 
 ![Fuerzas XZ](resultados/gauss_interfaz/fuerzas_xz.png)
-![Plano de contacto](resultados/gauss_interfaz/fuerzas_xy.png)
+![Plano focal](resultados/gauss_interfaz/fuerzas_xy.png)
 
-Fuerza hacia el vidrio en el punto de contacto, sobre el eje, a 1 mW:
+Fuerza en el foco (x = y = 0, z = 0), a 1 mW:
 
 | caso | total | gradiente | scattering | spin-curl | potencia para 0.6 pN |
 |---|---|---|---|---|---|
-| sin vidrio | 1.59 pN | +0.01 | +1.87 | −0.28 | 0.38 mW |
-| con vidrio | 1.44 pN | −0.13 | +1.85 | −0.27 | 0.42 mW |
+| sin vidrio | 1.59 pN | 0.00 | +1.88 | −0.28 | 0.38 mW |
+| con vidrio | 1.58 pN | 0.00 | +1.84 | −0.26 | 0.38 mW |
 
-- **El scattering es lo que imprime:** empuja la NP hacia el vidrio con
+- **El scattering es la fuerza dominante:** empuja hacia el vidrio con
   ~1.9 pN a 1 mW. El spin-curl le resta ~15 %.
-- **El vidrio reduce el empuje en el contacto ~10 %.** La reflexión en el
-  vidrio (≈ 0.5 % en intensidad) forma una onda estacionaria. Justo en el
-  contacto, su gradiente apunta hacia arriba (−0.13 pN).
-- **Con 0.42 mW alcanza para imprimir** (0.6 pN en el contacto).
-- **En el plano de contacto la fuerza lateral apunta al eje** y cambia poco
-  con el vidrio (hasta ~7 % del máximo, sobre todo a lo largo de y): la NP
-  se imprime centrada en el foco.
+- **En el foco el vidrio casi no cambia la fuerza** (−1 %). La onda
+  estacionaria que forma la reflexión tiene un mínimo justo en la superficie
+  (la reflexión agua → vidrio invierte el campo), así que ahí el gradiente es
+  ~0. El efecto del vidrio se ve más arriba: la fuerza se concentra en
+  franjas y es máxima a ~200 nm de la superficie.
+- **Con 0.38 mW se llega a 0.6 pN en el foco**, con o sin vidrio.
+- **En el plano focal la fuerza lateral apunta al eje.** Con el vidrio
+  cambia hasta ~14 % del máximo, en un anillo a ~150 nm del eje.
 
 ## Calibración foco → BFP (`calibracion_foco.py`)
 
