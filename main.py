@@ -59,29 +59,31 @@ Ex_d_xz, Ey_d_xz, Ez_d_xz = Ex_d_xz * factor_E_d, Ey_d_xz * factor_E_d, Ez_d_xz 
 # 4) Fuerzas opticas
 # ============================================================
 # --- XY ---
-Fx_g, Fy_g, Fg_x_g, Fg_y_g, Fs_x_g, Fs_y_g, Fsc_x_g, Fsc_y_g = fuerzas_xy(
-    Ex_g_xy, Ey_g_xy, Ez_g_xy, dx_fuerzas, dy_fuerzas, dz_fuerzas,
+# Cada funcion devuelve (total, conservativa, no conservativa) en las dos
+# direcciones del plano.
+Fx_g, Fy_g, Fc_x_g, Fc_y_g, Fnc_x_g, Fnc_y_g = fuerzas_xy(
+    Ex_g_xy, Ey_g_xy, Ez_g_xy, dx_fuerzas, dy_fuerzas,
     alpha_p_g, alpha_pp_g, eps_m)
 
-Fx_d, Fy_d, Fg_x_d, Fg_y_d, Fs_x_d, Fs_y_d, Fsc_x_d, Fsc_y_d = fuerzas_xy(
-    Ex_d_xy, Ey_d_xy, Ez_d_xy, dx_fuerzas, dy_fuerzas, dz_fuerzas,
+Fx_d, Fy_d, Fc_x_d, Fc_y_d, Fnc_x_d, Fnc_y_d = fuerzas_xy(
+    Ex_d_xy, Ey_d_xy, Ez_d_xy, dx_fuerzas, dy_fuerzas,
     alpha_p_d, alpha_pp_d, eps_m)
 
 Fx_tot = Fx_g + Fx_d
 Fy_tot = Fy_g + Fy_d
 
 # --- XZ ---
-Fx_g_xz, Fz_g_xz, Fg_x_g_xz, Fg_z_g_xz, Fs_x_g_xz, Fs_z_g_xz, Fsc_x_g_xz, Fsc_z_g_xz = fuerzas_xz(
+Fx_g_xz, Fz_g_xz, Fc_x_g_xz, Fc_z_g_xz, Fnc_x_g_xz, Fnc_z_g_xz = fuerzas_xz(
     Ex_g_xz, Ey_g_xz, Ez_g_xz, dx_fuerzas, dz_fuerzas, alpha_p_g, alpha_pp_g, eps_m)
 
-Fx_d_xz, Fz_d_xz, Fg_x_d_xz, Fg_z_d_xz, Fs_x_d_xz, Fs_z_d_xz, Fsc_x_d_xz, Fsc_z_d_xz = fuerzas_xz(
+Fx_d_xz, Fz_d_xz, Fc_x_d_xz, Fc_z_d_xz, Fnc_x_d_xz, Fnc_z_d_xz = fuerzas_xz(
     Ex_d_xz, Ey_d_xz, Ez_d_xz, dx_fuerzas, dz_fuerzas, alpha_p_d, alpha_pp_d, eps_m)
 
 a = 1  # peso relativo del haz dona al contrapropagar
 # CORREGIDO: el haz dona viaja hacia -z, asi que su fuerza es la imagen
 # especular (z -> -z) de la que se simulo. Antes: Fz_g - a*Fz_d, que invierte
-# bien el scattering (par en z) pero tambien la fuerza de gradiente (impar en
-# z), y los gradientes de los dos haces se RESTABAN en vez de sumarse.
+# bien la fuerza no conservativa (par en z) pero tambien la de gradiente
+# (impar en z), y los gradientes de los dos haces se RESTABAN en vez de sumarse.
 Fx_d_xz_cp, Fz_d_xz_cp = espejar_haz_contrapropagante(Fx_d_xz, Fz_d_xz)
 Fx_tot_xz = Fx_g_xz + a * Fx_d_xz_cp
 Fz_tot_xz = Fz_g_xz + a * Fz_d_xz_cp
@@ -110,17 +112,15 @@ graficar_comparacion(
 )
 
 graficar_componentes(
-    [(Fg_x_d_xz, Fg_z_d_xz, 'F gradiente'),
-     (Fs_x_d_xz, Fs_z_d_xz, 'F scattering'),
-     (Fsc_x_d_xz, Fsc_z_d_xz, 'F spin-curl')],
+    [(Fc_x_d_xz, Fc_z_d_xz, 'F conservativa (gradiente)'),
+     (Fnc_x_d_xz, Fnc_z_d_xz, 'F no conservativa')],
     rango=rango_xz,
     titulo_general='Componentes de fuerza - haz Dona (XZ)',
 )
 
 graficar_componentes(
-    [(Fg_x_d, Fg_y_d, 'F gradiente'),
-     (Fs_x_d, Fs_y_d, 'F scattering'),
-     (Fsc_x_d, Fsc_y_d, 'F spin-curl')],
+    [(Fc_x_d, Fc_y_d, 'F conservativa (gradiente)'),
+     (Fnc_x_d, Fnc_y_d, 'F no conservativa')],
     rango=rango_xy, eje_y='y (nm)',
     titulo_general='Componentes de fuerza - haz Dona (XY)',
 )

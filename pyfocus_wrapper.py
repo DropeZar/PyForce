@@ -122,8 +122,8 @@ def campo_foco(funcion, NA, n, h, w0, wavelength, gamma, beta, I0,
         cambiado sin que se den vuelta las componentes Ey);
       - PyFocus devuelve Ez con el signo opuesto al fisico: con su Ez,
         div E da del orden de |dEx/dx| en vez de 0 (con el signo cambiado da 0).
-    |E|^2, el gradiente y el scattering no cambian; el spin-curl si, porque
-    mezcla Ez con Ex y Ey.
+    |E|^2 y la fuerza total no cambian con el signo global de Ez, pero si
+    con el signo relativo entre Ez y Ex, Ey (y con el orden de las filas).
 
     solo_xy=True: calcula una sola fila en z (rapido); "XZ" queda en None.
     """

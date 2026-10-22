@@ -33,7 +33,7 @@ def _cargar_haz(npz_path):
 
 def _fuerza_xy_pN(data, alpha_p, alpha_pp):
     Fx, Fy, *_ = fuerzas_xy(data['Ex_xy'], data['Ey_xy'], data['Ez_xy'],
-                             dx_fuerzas, dy_fuerzas, dz_fuerzas,
+                             dx_fuerzas, dy_fuerzas,
                              alpha_p, alpha_pp, eps_m)
     return Fx * 1e12, Fy * 1e12  # N -> pN
 

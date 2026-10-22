@@ -19,10 +19,9 @@ Las fuerzas solo tienen sentido en el agua (z < 0). Con vidrio, el plano
 focal coincide con la superficie, asi que se toma del lado del agua
 (z = 0-), y las derivadas en z se hacen solo con puntos del agua.
 
-Fuerzas: gradiente + scattering + spin-curl (fuerzas.py). Las derivadas
-fuera del plano se aproximan como en fuerzas.py (con div E = 0): en el
-plano XZ es exacto para este haz (polarizado en x); en el plano XY el
-spin-curl lateral queda aproximado.
+Fuerzas: conservativa (gradiente) + no conservativa (fuerzas.py). En cada
+plano las dos componentes de la fuerza salen enteras de derivadas dentro
+del plano.
 
 Salida en resultados/gauss_interfaz/:
     fuerzas_xz.png    mapas XZ sin y con vidrio
@@ -92,7 +91,7 @@ def mapas(n2):
     c = _campo(n2, X_STEPS, Z_STEPS, X_RANGE, Z_RANGE, Z_FOCO)
     x, z = c['x_xz'], c['z_xz']
     dx = (x[1] - x[0]) * 1e-9
-    xy = fuerzas_xy(*[e * factor_E for e in c['XY']], dx, dx, dx,
+    xy = fuerzas_xy(*[e * factor_E for e in c['XY']], dx, dx,
                     alpha_p, alpha_pp, eps_m)
     xz = _fuerzas_xz_agua(c['XZ'], x, z, n2)
     return dict(x_xy=c['x_xy'], xy=[F * pN for F in xy], x_xz=x, z_xz=z, xz=xz)
@@ -108,7 +107,7 @@ def fuerza_en_el_foco(n2):
     x, z = c['x_xz'], c['z_xz']
     F = _fuerzas_xz_agua(c['XZ'], x, z, n2)
     i, j = np.argmin(np.abs(z - Z_FOCO)), np.argmin(np.abs(x))
-    return {k: F[n][i, j] for k, n in (('total', 1), ('grad', 3), ('scat', 5), ('sc', 7))}
+    return {k: F[n][i, j] for k, n in (('total', 1), ('c', 3), ('nc', 5))}
 
 
 # ---------------------------------------------------------------------------
@@ -187,15 +186,14 @@ if __name__ == '__main__':
         f'- Partícula: Au, {2 * a_nm:.0f} nm de diámetro, en agua; α\' = {alpha_p:.3e} m³, '
         f'α\'\' = {alpha_pp:.3e} m³ (Mie, dipolo a1).',
         f'- Vidrio: n = {n_vidrio}, semi-infinito, con la superficie en el foco (z = 0).',
-        '- Campos: PyFocus (sim.custom con la interfaz). Fuerza total = gradiente + '
-        'scattering + spin-curl.', '',
+        '- Campos: PyFocus (sim.custom con la interfaz). Fuerza total = conservativa '
+        '(gradiente) + no conservativa.', '',
         '## En el foco (x = y = 0, z = 0; con vidrio, del lado del agua)', '',
-        '| caso | Fz total (pN) | gradiente | scattering | spin-curl |',
-        '|---|---|---|---|---|',
+        '| caso | Fz total (pN) | conservativa (gradiente) | no conservativa |',
+        '|---|---|---|---|',
     ]
     for nombre, p in foco.items():
-        lineas.append(f"| {nombre} | {p['total']:.3f} | {p['grad']:.3f} | "
-                      f"{p['scat']:.3f} | {p['sc']:.3f} |")
+        lineas.append(f"| {nombre} | {p['total']:.3f} | {p['c']:.3f} | {p['nc']:.3f} |")
     lineas += ['', f'## Potencia para llegar a {F_IMPRESION_pN} pN en el foco', '',
                '| caso | Fz en el foco a 1 mW (pN) | potencia necesaria (mW) |',
                '|---|---|---|']

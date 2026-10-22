@@ -71,8 +71,8 @@ def graficar_comparacion(fuerzas_por_haz, rango, titulo_general='',
 def graficar_componentes(componentes, rango, titulo_general='',
                           eje_x='x (nm)', eje_y='z (nm)'):
     """
-    Desglose de una fuerza total en sus componentes (gradiente,
-    scattering, spin-curl). componentes: lista de tuplas
+    Desglose de una fuerza total en sus componentes (conservativa y no
+    conservativa). componentes: lista de tuplas
     (F_horizontal, F_vertical, titulo); sirve para XZ (default) y para XY
     pasando eje_y='y (nm)'.
     """
