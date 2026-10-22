@@ -29,6 +29,7 @@ python grafico_lindo.py   # figura resumen 3x3 a partir de los .npz
 python particula.py       # polarizabilidad de Mie, Mie completo vs dipolo, comparación con Kuwata
 python calibracion_foco.py
 python fuerzas_gauss_interfaz.py   # printing con el gauss, con y sin vidrio -> resultados/gauss_interfaz/ (~15 min)
+python intensidad_gauss_interfaz.py  # intensidad del gauss, con y sin vidrio (~15 min)
 ```
 
 `main.py` y `calibracion_foco.py` están divididos en celdas (`#%%`) para
@@ -58,6 +59,7 @@ Ex_xz, Ey_xz, Ez_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
 | `calibracion_foco_gauss.py` | Predicción rápida del foco del haz gaussiano para unos `w0`/`I0` a mano. |
 | `calibracion.json` | Resultado de la calibración; lo leen `beams/*.py` al importarse. |
 | `fuerzas_gauss_interfaz.py` | Printing con el gauss calibrado: fuerzas sin vidrio y con el vidrio en el foco. |
+| `intensidad_gauss_interfaz.py` | Intensidad del gauss calibrado sin vidrio y con el vidrio en el foco. |
 | `resultados/` | Figuras y resúmenes publicados (ver [Resultados](#resultados)). |
 | `Objetivos.txt` | NA, n, h y f de los objetivos disponibles. |
 
@@ -197,6 +199,28 @@ muestra.
 Limitaciones: el spin-curl de la dona (polarización circular) queda
 aproximado con los planos de PyFocus (ver "Derivadas fuera del plano"), y el
 plano XY de PyFocus tiene algo de ruido de píxel (radio redondeado).
+
+### Intensidad del haz gaussiano con y sin vidrio (`resultados/gauss_interfaz/`)
+
+Gauss calibrado (592 nm, NA = 1, 1 mW en la muestra), con la superficie del
+vidrio en el foco (z = 0). Figura de `intensidad_gauss_interfaz.py`. La
+intensidad es `½ n c ε₀ |E|²` con el n de cada medio, y en el plano focal se
+toma del lado del vidrio.
+
+![Intensidad con y sin vidrio](resultados/gauss_interfaz/intensidad.png)
+
+- **Arriba del vidrio, en el agua, aparece una onda estacionaria.** La
+  reflexión en el vidrio (≈ 0.5 % de la intensidad a incidencia normal)
+  interfiere con el haz que baja y modula la intensidad sobre el eje en
+  ~±10 %, con período λ/2n ≈ 220 nm. El máximo sube de 900 a ~1000 kW/cm², a
+  ~130 nm del vidrio.
+- **En la superficie la intensidad salta**, porque cambian el índice y la
+  componente Ez del campo (se conserva n²·Ez, no Ez).
+- **Dentro del vidrio el haz se abre más despacio** (se refracta hacia el
+  eje), así que la intensidad cae más lento que sin vidrio.
+- **En el plano focal el perfil transversal casi no cambia:** el pico baja
+  de 900 a 890 kW/cm² y el ancho es el mismo.
+
 ### Printing con el haz gaussiano, con y sin vidrio (`resultados/gauss_interfaz/`)
 
 Gauss calibrado (FWHM = 330 nm, P = 1 mW), NP de Au de 100 nm de diámetro en
