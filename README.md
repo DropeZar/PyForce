@@ -107,14 +107,6 @@ F = (ε₀ εm / 2) Re[α* Σⱼ Eⱼ* ∇Eⱼ]
    esta NP: el gradiente de la dona la empuja hacia el centro oscuro del
    anillo, no hacia el anillo.
 
-   Eso es correcto. Como en cualquier oscilador, α′ cambia de signo al
-   cruzar la resonancia: es positiva del lado rojo y negativa del lado azul.
-   La resonancia dipolar de una NP de oro de 100 nm en agua está en 573 nm
-   (máximo de α″; el pico de extinción con Mie completo da 569 nm), y
-   α′ < 0 entre 479 y 548 nm. Para NPs chicas la resonancia está cerca de
-   520 nm y a 532 nm α′ > 0. El cambio de signo a 532 nm ocurre en un
-   diámetro de ≈ 83 nm. Cerca de ese tamaño |α′| es chica y el gradiente pesa
-   poco frente a la fuerza no conservativa.
 2. **No conservativa** — `F_nc = (ε₀ εm α″ / 2) Im[Σⱼ Eⱼ* ∇Eⱼ]`.
    Viene de la luz que la NP absorbe y dispersa, y empuja en el sentido en
    que viaja la luz. Para el oro es la fuerza dominante: es la que **lleva la
@@ -130,12 +122,6 @@ XY, Fx y Fy de derivadas en x e y. No hacen falta derivadas fuera del plano.
 (medido; `sim_config.F_IMPRESION_pN`). Lateralmente, el
 gradiente lleva la NP hacia el eje del haz, lo que fija dónde queda impresa.
 
-**Validez del modelo dipolar.** Con a = 50 nm, los multipolos más altos de Mie
-pesan poco. Comparando la presión de radiación de una onda plana con Mie
-completo y solo con a1 (`particula.secciones_eficaces`), el dipolo la
-subestima un 1 % a 592 nm y un 4 % a 532 nm. No se incluyen la interacción de
-la NP con su propia imagen en el vidrio ni fuerzas de contacto (van der
-Waals, electrostáticas).
 
 ## Detalles de la física y de PyFocus
 
@@ -161,11 +147,7 @@ especular (z → −z) de las simuladas (`fuerzas.espejar_haz_contrapropagante`)
 **Interfaz agua/vidrio.** El portaobjetos (n = 1.52, con aceite de índice
 igualado abajo) se trata como semi-infinito, con su superficie **en el
 foco**. Se calcula con `sim.custom` de PyFocus, la única función que tiene en
-cuenta una interfaz (`sim.no_mask`/`sim.VP` la ignoran), a través de
-`pyfocus_wrapper.campo_foco_vidrio`. Esa función corrige que `sim.custom` da
-los campos ~1 % más chicos (pesa mal los extremos de la integral) y los pasa a
-la misma convención que el resto. Sin vidrio coincide con `sim.no_mask` a
-5e-4. 
+cuenta una interfaz (`sim.no_mask`/`sim.VP` la ignoran).
 
 **Convención de PyFocus.** `sim.no_mask`/`sim.VP` devuelven Ez con el signo
 opuesto al físico (con su Ez, div E ≠ 0) y el plano XY con las filas de +y a −y.
@@ -219,8 +201,6 @@ Valores para la NP de 100 nm de diámetro (en 10⁻²¹ m³):
 - **Con 100 nm se separan mucho.** El retardo y el amortiguamiento radiativo
   corren la resonancia de ~520 nm (cuasiestática) a 573 nm (Mie) y la
   ensanchan. Kuwata corrige parte de eso, pero no alcanza.
-- **Para la fuerza que imprime** (no conservativa, ∝ α″) a 592 nm, Kuwata la
-  subestima ~2 veces y la cuasiestática ~8 veces respecto de Mie.
 - **A 532 nm solo Mie da α′ < 0.** Kuwata y la cuasiestática no capturan el
   corrimiento de la resonancia, así que a esa longitud de onda les queda del
   otro lado.
