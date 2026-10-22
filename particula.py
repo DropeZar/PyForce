@@ -12,6 +12,8 @@ permitividad del oro interpolada de la tabla completa de Johnson & Christy
 - secciones_eficaces: Qext, Qsca, Qpr de Mie completo vs solo dipolo, para
   ver cuanto se pierde con la aproximacion dipolar.
 - calc_alpha_kuwata: la aproximacion de Kuwata, solo para comparar.
+- calc_alpha_cuasiestatica: la polarizabilidad cuasiestatica ("Clausius-
+  Mossotti"), solo para comparar.
 
 Uso tipico:
     from particula import calc_alpha
@@ -161,6 +163,22 @@ def secciones_eficaces(wavelength_nm, a=radio_particula, eps_m_local=eps_m):
             'dipolo': _q(a_dip, cero)}
 
 
+def calc_alpha_cuasiestatica(wavelength_nm, a=radio_particula, eps_m_local=eps_m):
+    """
+    Polarizabilidad cuasiestatica (electrostatica) de una esfera, la de la
+    forma "Clausius-Mossotti":
+
+        alpha = 4 pi a^3 (eps_p - eps_m) / (eps_p + 2 eps_m)
+
+    Vale para a << lambda/n: no tiene retardo ni amortiguamiento radiativo.
+    Es el limite x -> 0 de calc_alpha (Mie). Solo para comparar.
+    Retorna (Re(alpha), Im(alpha)) en m^3.
+    """
+    eps_p = epsilon_gold(wavelength_nm)
+    alpha = 4 * np.pi * a ** 3 * (eps_p - eps_m_local) / (eps_p + 2 * eps_m_local)
+    return np.real(alpha), np.imag(alpha)
+
+
 def calc_alpha_kuwata(wavelength_nm, a=radio_particula, eps_m_local=eps_m):
     """
     Aproximacion de Kuwata (cuasi-estatica con correcciones de tamano), solo
@@ -207,7 +225,7 @@ def graficar_alpha(lam_min=400, lam_max=900, n_puntos=1001, a=radio_particula,
     ax.plot(lam_nm, ap / esc, color="tab:blue", lw=1.8,
             label=r"$\alpha'$ = Re($\alpha$): gradiente")
     ax.plot(lam_nm, app / esc, color="tab:red", lw=1.8,
-            label=r"$\alpha''$ = Im($\alpha$): scattering y spin-curl")
+            label=r"$\alpha''$ = Im($\alpha$): no conservativa")
 
     negativo = ap < 0
     if negativo.any():
@@ -247,44 +265,51 @@ def graficar_alpha(lam_min=400, lam_max=900, n_puntos=1001, a=radio_particula,
     return fig, ax
 
 
-def graficar_comparacion(lam_min=400, lam_max=900, n_puntos=400, a=radio_particula,
-                          eps_m_local=eps_m, longitudes_marcadas=(532, 592)):
+def graficar_comparacion(lam_min=400, lam_max=900, n_puntos=601, diametros_nm=(20, 100),
+                          eps_m_local=eps_m, longitudes_marcadas=(532, 592), archivo=None):
     """
-    Compara Kuwata vs Mie: Re(alpha), Im(alpha) y |alpha| superpuestos,
-    para un radio, en tres paneles.
+    Compara las tres polarizabilidades: Mie (la que se usa), Kuwata y
+    cuasiestatica ("Clausius-Mossotti"). Una fila por diametro, columnas
+    alpha' y alpha''. Se grafica alpha / (4 pi a^3) para que las filas sean
+    comparables (en el limite cuasiestatico es (eps-eps_m)/(eps+2 eps_m)).
+    archivo: si se da, guarda la figura ahi en vez de mostrarla.
     """
     import matplotlib.pyplot as plt
 
     lam_nm = np.linspace(lam_min, lam_max, n_puntos)
-    apK, appK = calc_alpha_kuwata(lam_nm, a=a, eps_m_local=eps_m_local)
-    apM, appM = calc_alpha(lam_nm, a=a, eps_m_local=eps_m_local)
-    aK, aM = apK + 1j * appK, apM + 1j * appM
+    modelos = (('Mie', calc_alpha, dict(color='k', lw=2)),
+               ('Kuwata', calc_alpha_kuwata, dict(color='tab:blue', ls='--')),
+               ('cuasiestática (Clausius-Mossotti)', calc_alpha_cuasiestatica,
+                dict(color='tab:red', ls=':', lw=1.8)))
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), sharex=True)
-    titulos = [r"Re($\alpha$)", r"Im($\alpha$)", r"$|\alpha|$"]
-    datosK = [aK.real, aK.imag, np.abs(aK)]
-    datosM = [aM.real, aM.imag, np.abs(aM)]
-
-    for ax, tit, dK, dM in zip(axes, titulos, datosK, datosM):
-        ax.plot(lam_nm, dK, label="Kuwata", color="tab:blue")
-        ax.plot(lam_nm, dM, label="Mie", color="tab:orange", ls="--")
-        for lam0 in longitudes_marcadas:
-            if lam_min <= lam0 <= lam_max:
-                ax.axvline(lam0, color="gray", lw=0.6, ls=":")
-        ax.axhline(0, color="gray", lw=0.4)
-        ax.set_title(tit)
+    fig, axes = plt.subplots(len(diametros_nm), 2, figsize=(12, 4 * len(diametros_nm)),
+                             sharex=True, squeeze=False)
+    for fila, d_nm in zip(axes, diametros_nm):
+        a = d_nm / 2 * 1e-9
+        norm = 4 * np.pi * a ** 3
+        for nombre, fn, estilo in modelos:
+            ap, app = fn(lam_nm, a=a, eps_m_local=eps_m_local)
+            fila[0].plot(lam_nm, ap / norm, label=nombre, **estilo)
+            fila[1].plot(lam_nm, app / norm, label=nombre, **estilo)
+        for ax, parte in zip(fila, ("α′ = Re(α)", "α″ = Im(α)")):
+            for lam0 in longitudes_marcadas:
+                ax.axvline(lam0, color='gray', lw=0.7, ls=':')
+            ax.axhline(0, color='gray', lw=0.5)
+            ax.set_title(f"{parte} — NP de {d_nm} nm de diámetro")
+            ax.set_ylabel(r"$\alpha \,/\, 4\pi a^3$")
+            ax.grid(alpha=0.3)
+        fila[1].legend(fontsize=8)
+    for ax in axes[-1]:
         ax.set_xlabel("Longitud de onda [nm]")
-        ax.grid(alpha=0.3)
-        ax.legend(fontsize=9)
-
-    lam_res_K = lam_nm[np.argmax(np.abs(aK))]
-    lam_res_M = lam_nm[np.argmax(np.abs(aM))]
-    fig.suptitle(
-        f"Kuwata vs Mie — nanoesfera Au, a={a*1e9:.0f} nm   "
-        f"(máx |α|: Kuwata {lam_res_K:.0f} nm, Mie {lam_res_M:.0f} nm)"
-    )
+    fig.suptitle("Polarizabilidad del oro en agua: Mie vs Kuwata vs cuasiestática "
+                 f"(líneas punteadas verticales: {', '.join(map(str, longitudes_marcadas))} nm)",
+                 fontsize=12)
     fig.tight_layout()
-    plt.show()
+    if archivo:
+        fig.savefig(archivo, dpi=180, bbox_inches='tight')
+        plt.close(fig)
+    else:
+        plt.show()
     return fig, axes
 
 
@@ -334,5 +359,5 @@ if __name__ == '__main__':
                            'resultados', 'polarizabilidad')
     os.makedirs(carpeta, exist_ok=True)
     graficar_alpha(archivo=os.path.join(carpeta, 'alpha_mie.png'))
-    graficar_comparacion()
+    graficar_comparacion(archivo=os.path.join(carpeta, 'mie_kuwata_cuasiestatica.png'))
     comparar_radios()

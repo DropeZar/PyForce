@@ -6,8 +6,8 @@ vidrio, donde queda impresa. Se usan dos haces enfocados por objetivos opuestos
 (contrapropagantes): un haz gaussiano y un haz dona. Los campos en el
 foco se calculan con [PyFocus](https://github.com/Stefani-Lab/PyFocus)
 (Richards-Wolf), incluida la interfaz agua/vidrio con el foco sobre el vidrio,
-y a partir de ellos se obtienen las fuerzas de gradiente, scattering y
-spin-curl en los planos XY y XZ.
+y a partir de ellos se obtiene la fuerza óptica (conservativa y no
+conservativa) en los planos XY y XZ.
 
 Proyecto de Laboratorio 6 y 7.
 
@@ -51,7 +51,7 @@ Ex_xz, Ey_xz, Ez_xz = data['Ex_xz'], data['Ey_xz'], data['Ez_xz']
 | `sim_config.py` | **Único lugar** con los parámetros compartidos: radio de la partícula, índices de los medios, grilla de PyFocus, paso de las derivadas y extensión de los planos XY/XZ. |
 | `beams/gauss.py`, `beams/dona.py` | Parámetros propios de cada haz (`NA`, `n`, `h`, `w0`, `λ`, polarización, `I0`) y su `get_field()`. |
 | `particula.py` | Polarizabilidad del oro con teoría de Mie (tabla de Johnson & Christy 1972): `calc_alpha` (dipolo a1, la que se usa), coeficientes y secciones eficaces completas, y Kuwata solo para comparar. |
-| `fuerzas.py` | Funciones puras: factor de conversión a V/m, fuerzas (gradiente + scattering + spin-curl) en XY y XZ, espejado del haz contrapropagante. |
+| `fuerzas.py` | Funciones puras: factor de conversión a V/m, fuerza (conservativa + no conservativa) en XY y XZ, espejado del haz contrapropagante. |
 | `graficos.py` | Mapas de magnitud + streamplot, comparación entre haces, desglose en componentes e intensidad. |
 | `grafico_lindo.py` | Figura resumen 3x3 (XY, XZ y corte de Fz en z = 0 con FWHM) a partir de los `.npz`. |
 | `pyfocus_wrapper.py` | Capa entre el código y PyFocus: lo corre sin abrir figuras, corrige la doble división λ/n, pasa la salida a la convención física (Ez y eje y) y da el factor de conversión a SI. `campo_foco_vidrio` calcula el foco con el vidrio (`sim.custom`). |
@@ -72,8 +72,8 @@ a1, `particula.calc_alpha`). Sus dos partes juegan papeles distintos:
 
 - **α′ (parte real):** la NP responde en fase con el campo. Da la fuerza de
   gradiente.
-- **α″ (parte imaginaria):** la NP absorbe y dispersa luz. Da el scattering y
-  el spin-curl.
+- **α″ (parte imaginaria):** la NP absorbe y dispersa luz. Da la fuerza no
+  conservativa.
 
 Para el oro, cerca de la resonancia plasmónica, α″ es del orden de α′ o
 mayor:
@@ -90,10 +90,18 @@ en 573 nm; en la franja sombreada (479–548 nm) α′ < 0. Los quiebres de las
 curvas vienen de interpolar linealmente la tabla de Johnson & Christy, que
 tiene un punto cada ~20–40 nm.
 
-La fuerza sobre el dipolo, `F = (ε₀ εm / 2) Re[α* Σⱼ Eⱼ* ∇Eⱼ]`, se separa en
-tres términos (`fuerzas.py` los calcula por separado y los suma):
+La fuerza promediada en el tiempo sobre el dipolo (Chaumet & Nieto-Vesperinas,
+*Opt. Lett.* 25, 1065 (2000)) es
 
-1. **Gradiente** — `F_grad = (ε₀ εm α′ / 4) ∇|E|²`.
+```
+F = (ε₀ εm / 2) Re[α* Σⱼ Eⱼ* ∇Eⱼ]
+  = (ε₀ εm α′ / 4) ∇|E|²  +  (ε₀ εm α″ / 2) Im[Σⱼ Eⱼ* ∇Eⱼ]
+        conservativa             no conservativa
+```
+
+`fuerzas.py` calcula los dos términos por separado y los suma:
+
+1. **Conservativa (gradiente)** — `F_c = (ε₀ εm α′ / 4) ∇|E|²`.
    Es conservativa. Con α′ > 0 lleva la NP hacia donde la luz es más
    intensa; con α′ < 0, hacia donde es menos intensa. A 532 nm, α′ < 0 para
    esta NP: el gradiente de la dona la empuja hacia el centro oscuro del
@@ -106,20 +114,17 @@ tres términos (`fuerzas.py` los calcula por separado y los suma):
    α′ < 0 entre 479 y 548 nm. Para NPs chicas la resonancia está cerca de
    520 nm y a 532 nm α′ > 0. El cambio de signo a 532 nm ocurre en un
    diámetro de ≈ 83 nm. Cerca de ese tamaño |α′| es chica y el gradiente pesa
-   poco frente al scattering.
-2. **Scattering (presión de radiación)** — `F_scat = (ε₀ εm α″ / 2) Im[E* × (∇ × E)]`.
-   Sigue el flujo de energía (vector de Poynting), o sea, empuja en el
-   sentido en que viaja la luz. Para el oro es la fuerza dominante: es la que
-   **lleva la NP hasta el vidrio y la imprime**.
-3. **Spin-curl** — `F_sc = (ε₀ εm α″ / 2) Im[(E* · ∇) E]`.
-   Viene del rotor de la densidad de espín de la luz. En un foco muy cerrado
-   el campo tiene componente Ez en cuadratura con Ex, y aparece aunque el haz
-   esté polarizado linealmente. En el foco del gauss **se opone al
-   scattering** y le resta ~15 %.
+   poco frente a la fuerza no conservativa.
+2. **No conservativa** — `F_nc = (ε₀ εm α″ / 2) Im[Σⱼ Eⱼ* ∇Eⱼ]`.
+   Viene de la luz que la NP absorbe y dispersa, y empuja en el sentido en
+   que viaja la luz. Para el oro es la fuerza dominante: es la que **lleva la
+   NP hasta el vidrio y la imprime**. En la literatura se la suele separar en
+   scattering (vector de Poynting) + spin-curl (Albaladejo et al., *PRL* 102,
+   113602 (2009)); es la misma fuerza escrita en dos pedazos.
 
-Gradiente + scattering + spin-curl da exactamente la fuerza dipolar
-(se verificó numéricamente). El scattering tiene que ser el de Poynting: el
-término "orbital" `Im[Eⱼ* ∇Eⱼ]` ya incluye el spin-curl.
+**La componente i de la fuerza solo necesita derivadas en la dirección i.**
+En el plano XZ, Fx y Fz salen enteras de derivadas en x y en z; en el plano
+XY, Fx y Fy de derivadas en x e y. No hacen falta derivadas fuera del plano.
 
 **Para imprimir** hace falta una fuerza hacia el vidrio de **≈ 0.6 pN**
 (medido; `sim_config.F_IMPRESION_pN`). Lateralmente, el
@@ -153,12 +158,6 @@ esquina de la grilla XY), y sus filas van de −z a +z.
 **Haz contrapropagante.** La dona viaja hacia −z: sus fuerzas XZ son la imagen
 especular (z → −z) de las simuladas (`fuerzas.espejar_haz_contrapropagante`).
 
-**Derivadas fuera del plano.** Scattering y spin-curl necesitan derivadas
-perpendiculares al plano calculado (∂/∂z en XY, ∂/∂y en XZ), que un plano
-solo no tiene. La de la componente normal sale de div E = 0 y las otras se
-toman como cero. Para polarización lineal en x eso es exacto en XZ; con
-polarización circular (la dona) el spin-curl queda ~50 % mal.
-
 **Interfaz agua/vidrio.** El portaobjetos (n = 1.52, con aceite de índice
 igualado abajo) se trata como semi-infinito, con su superficie **en el
 foco**. Se calcula con `sim.custom` de PyFocus, la única función que tiene en
@@ -175,6 +174,56 @@ plano XY de PyFocus: la grilla está corrida medio píxel en y, y el radio de
 cada píxel se redondea, lo que mete ruido en las derivadas.
 
 ## Resultados
+
+### Polarizabilidad: Mie vs Kuwata vs cuasiestática (`resultados/polarizabilidad/`)
+
+Comparación de tres formas de calcular α para una NP de oro en agua (figura de
+`particula.graficar_comparacion`). Se grafica α / 4πa³ para comparar tamaños:
+
+En las tres, a es el radio, εp = εp(λ) la permitividad del oro (Johnson &
+Christy), εm = n_m² la del agua y λ la longitud de onda en vacío. Todas usan
+la convención p = ε₀ εm α E (α en m³).
+
+**Mie** (`calc_alpha`, la que usa la simulación): exacta para el dipolo
+eléctrico, a partir del coeficiente a₁ de Mie (Bohren & Huffman, cap. 4):
+
+$$\alpha_{\rm Mie} = i\,\frac{6\pi}{k^3}\,a_1,\qquad k = \frac{2\pi n_m}{\lambda},\qquad x = ka,\qquad m = \frac{n_p}{n_m}$$
+
+$$a_1 = \frac{m\,\psi_1(mx)\,\psi_1'(x) - \psi_1(x)\,\psi_1'(mx)}{m\,\psi_1(mx)\,\xi_1'(x) - \xi_1(x)\,\psi_1'(mx)}$$
+
+con las funciones de Riccati-Bessel ψ₁(ρ) = sin ρ/ρ − cos ρ y
+ξ₁(ρ) = ψ₁(ρ) − i(cos ρ/ρ + sin ρ).
+
+**Kuwata** (`calc_alpha_kuwata`): aproximación cuasiestática con
+correcciones de tamaño, tal como está implementada en el código:
+
+$$\alpha_{\rm K} = \frac{V\left[1 - \frac{1}{10}(\varepsilon_p - \varepsilon_m)\,x^2\right]}{\frac{1}{3} + \frac{\varepsilon_m}{\varepsilon_p - \varepsilon_m} - \frac{1}{30}(\varepsilon_p + 10\,\varepsilon_m)\,x^2 - i\,\frac{4\pi^2\varepsilon_m^{3/2}}{3}\,\frac{V}{\lambda^3}},\qquad V = \frac{4}{3}\pi a^3,\qquad x = \frac{\pi a}{\lambda}$$
+
+**Cuasiestática o "Clausius-Mossotti"** (`calc_alpha_cuasiestatica`): la
+polarizabilidad electrostática de una esfera, sin retardo ni amortiguamiento
+radiativo. Es el límite de Mie para x → 0:
+
+$$\alpha_{\rm CM} = 4\pi a^3\,\frac{\varepsilon_p - \varepsilon_m}{\varepsilon_p + 2\varepsilon_m}$$
+
+![Mie vs Kuwata vs cuasiestática](resultados/polarizabilidad/mie_kuwata_cuasiestatica.png)
+
+Valores para la NP de 100 nm de diámetro (en 10⁻²¹ m³):
+
+| λ | Mie | Kuwata | cuasiestática |
+|---|---|---|---|
+| 532 nm (dona) | −0.38 + 2.44i | +0.74 + 2.52i | +2.94 + 2.81i |
+| 592 nm (gauss) | +2.33 + 3.33i | +2.52 + 1.75i | +3.02 + 0.43i |
+
+- **Con 20 nm de diámetro los tres coinciden** (diferencias de pocos %): la NP
+  es chica frente a λ/n y vale la aproximación cuasiestática.
+- **Con 100 nm se separan mucho.** El retardo y el amortiguamiento radiativo
+  corren la resonancia de ~520 nm (cuasiestática) a 573 nm (Mie) y la
+  ensanchan. Kuwata corrige parte de eso, pero no alcanza.
+- **Para la fuerza que imprime** (no conservativa, ∝ α″) a 592 nm, Kuwata la
+  subestima ~2 veces y la cuasiestática ~8 veces respecto de Mie.
+- **A 532 nm solo Mie da α′ < 0.** Kuwata y la cuasiestática no capturan el
+  corrimiento de la resonancia, así que a esa longitud de onda les queda del
+  otro lado.
 
 ### Haces contrapropagantes gauss + dona, sin vidrio (`resultados/haces_contrapropagantes/`)
 
@@ -195,9 +244,8 @@ muestra.
   la dona cancela el empuje del gauss lejos del eje. La zona que empuja
   hacia abajo se angosta de 365 nm (FWHM, solo gauss) a 212 nm.
 
-Limitaciones: el spin-curl de la dona (polarización circular) queda
-aproximado con los planos de PyFocus (ver "Derivadas fuera del plano"), y el
-plano XY de PyFocus tiene algo de ruido de píxel (radio redondeado).
+Limitaciones: la dona no está calibrada y el plano XY de PyFocus tiene algo
+de ruido de píxel (radio redondeado).
 
 ### Intensidad del haz gaussiano con y sin vidrio (`resultados/gauss_interfaz/`)
 
@@ -233,13 +281,14 @@ completa en [`resumen.md`](resultados/gauss_interfaz/resumen.md).
 
 Fuerza en el foco (x = y = 0, z = 0), a 1 mW:
 
-| caso | total | gradiente | scattering | spin-curl | potencia para 0.6 pN |
-|---|---|---|---|---|---|
-| sin vidrio | 1.59 pN | 0.00 | +1.88 | −0.28 | 0.38 mW |
-| con vidrio | 1.58 pN | 0.00 | +1.84 | −0.26 | 0.38 mW |
+| caso | total | conservativa (gradiente) | no conservativa | potencia para 0.6 pN |
+|---|---|---|---|---|
+| sin vidrio | 1.59 pN | 0.00 | +1.59 | 0.38 mW |
+| con vidrio | 1.58 pN | 0.00 | +1.59 | 0.38 mW |
 
-- **El scattering es la fuerza dominante:** empuja hacia el vidrio con
-  ~1.9 pN a 1 mW. El spin-curl le resta ~15 %.
+- **La fuerza no conservativa es la que empuja:** ~1.6 pN hacia el vidrio a
+  1 mW. En el foco el gradiente es ~0 (es el máximo de intensidad sin vidrio,
+  y el mínimo de la onda estacionaria con vidrio).
 - **En el foco el vidrio casi no cambia la fuerza** (−1 %). La onda
   estacionaria que forma la reflexión tiene un mínimo justo en la superficie
   (la reflexión agua → vidrio invierte el campo), así que ahí el gradiente es
